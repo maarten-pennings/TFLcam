@@ -265,7 +265,7 @@ esp_err_t cam_setup() {
 // Otherwise, the flash light will be turned on with brightness `fled` (0..100) before the shot and off afterwards.
 // Result is stored in outbuf with size outsize. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
 // Return success status. Prints problems also to Serial.
-esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) {
+esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) { // TODO fled mode
   if( fled>=0 ) cam_fled_set(fled);
   camera_fb_t *fb = esp_camera_fb_get();
   if( fled>=0 ) cam_fled_set(0);
@@ -296,24 +296,31 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) {
   }
   
   // Crop and transform
+  int count = (cam_crop_width/cam_crop_xsize)*(cam_crop_height/cam_crop_ysize);
+  Serial.printf("count %d\n",count);
   for( int yp=0; yp<cam_crop_ysize; yp++ ) {
     for( int xp=0; xp<cam_crop_xsize; xp++ ) {
       // (xp,yp) is the coordinate of the block of input pixels that is averaged
       int sum=0;
+      Serial.printf("pool(%d,%d)",xp,yp);
       for( int yi=cam_crop_top+yp*cam_crop_height/cam_crop_ysize; yi<cam_crop_top+(yp+1)*cam_crop_height/cam_crop_ysize; yi++ ) {
         for( int xi=cam_crop_left+xp*cam_crop_width/cam_crop_xsize; xi<cam_crop_left+(xp+1)*cam_crop_width/cam_crop_xsize; xi++ ) {
           // (xi,yi) is the coordinate of the pixel in the averaging block
+          Serial.printf(" %d,%d",xi,yi);
           sum+= fb->buf[xi+CAM_CAPTURE_WIDTH*yi]; 
         }
+        Serial.printf(" |");
       }
+      Serial.printf("\n");
       // transform
       int xo = xp;
       int yo = yp;
+      int ww = cam_crop_xsize;
       if( cam_trans_flags & CAM_TRANS_VFLIP   ) { yo = cam_crop_ysize-1 - yo; }
       if( cam_trans_flags & CAM_TRANS_HMIRROR ) { xo = cam_crop_xsize-1 - xo; }
-      if( cam_trans_flags & CAM_TRANS_ROTCW   ) { int t=yo; yo=xo; xo=cam_crop_ysize-1 - yo; }
+      if( cam_trans_flags & CAM_TRANS_ROTCW   ) { int t=yo; yo=xo; xo=cam_crop_ysize-1 - t; ww=cam_crop_ysize; }
       // (xo,yo) is the coordinate of the pixel in the outbuf
-      outbuf[xo+cam_crop_xsize*yo]= sum/(cam_crop_xsize*cam_crop_ysize);
+      outbuf[xo+ww*yo]= (sum+count/2)/count;
     }
   }
 
@@ -325,20 +332,30 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) {
   return ESP_OK;
 }
 
+// Returns the width of the outbuf filled by cam_capture()
+int cam_outwidth() {
+  return cam_trans_flags & CAM_TRANS_ROTCW ? cam_crop_ysize : cam_crop_xsize;
+}
+
+// Returns the height of the outbuf filled by cam_capture()
+int cam_outheight() {
+  return cam_trans_flags & CAM_TRANS_ROTCW ? cam_crop_xsize : cam_crop_ysize;
+}
 
 // Print `img` in hex and ASCII to Serial
-void cam_printframe(uint8_t * img, int xsize, int ysize) {
+void cam_printframe(uint8_t * img, int width, int height) {
   static const char *level="W@8Oo=- ";
-  for( int y=0; y<ysize; y++ ) {
+  Serial.printf("y\\x: 0%*d\n",width*2-1,width-1);
+  for( int y=0; y<height; y++ ) {
     Serial.printf("%3d: ",y);
     // First print hex
-    for( int x=0; x<xsize; x++ ) {
-      Serial.printf("%02x",img[x+xsize*y]);
+    for( int x=0; x<width; x++ ) {
+      Serial.printf("%02x",img[x+width*y]);
     }
     Serial.printf(" |");
     // Next print ASCII impression
-    for( int x=0; x<xsize; x++ ) {
-      Serial.printf("%c",level[img[x+xsize*y]/32]);
+    for( int x=0; x<width; x++ ) {
+      Serial.printf("%c",level[img[x+width*y]/32]);
     }
     Serial.printf("|\n");
   }

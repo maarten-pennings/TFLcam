@@ -1,4 +1,4 @@
 // cmds.h - interface to the commands used by TFLcam
 
-// Configure the commands. Prints problems also to Serial.
+// Registers commands (may be called before cmd_begin). Prints problems also to Serial.
 void cmds_setup();

@@ -10,6 +10,33 @@
 #include "cam.h"          // camera configuration
 
 
+// cmds_sys =====================================================================================
+
+
+// The sys command handler
+static void cmds_sys_main( int argc, char * argv[] ) {
+  if( argc==2 && cmd_isprefix(PSTR("reboot"),argv[1])) {
+    ESP.restart();
+  }
+  Serial.printf("Error: unknown arguments for sys\n" ); return;
+}
+
+
+// Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
+static const char cmds_sys_longhelp[] PROGMEM = 
+  "SYNTAX: sys reboot\n"
+  "- reboot the system\n"
+;
+
+// TODO: sys clk - to get and set clock
+// TODO: WiFi off?
+
+// Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
+static int cmds_sys_register(void) {
+  return cmd_register(cmds_sys_main, PSTR("sys"), PSTR("system commands (like reboot)"), cmds_sys_longhelp);
+}
+
+
 // cmds_version =================================================================================
 
 
@@ -56,39 +83,49 @@ static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
   }
 }
 
+static void cmds_mode_show() {
+  if( tflcam_mode==TFLCAM_MODE_IDLE ) Serial.printf("mode: idle\n");
+  else if( tflcam_mode==TFLCAM_MODE_CONTINUOUS ) Serial.printf("mode: continuous\n");
+  else if( tflcam_mode==TFLCAM_MODE_TRAIN ) Serial.printf("mode: train\n");
+  else Serial.printf("mode: <unknown>\n");
+}
+
 // The mode command handler
 static void cmds_mode_main( int argc, char * argv[] ) {
   if( argc==1 ) {
-    Serial.printf("TODO: mode %d\n",tflcam_mode);
+    cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("idle"),argv[1]) ) { 
     if( argc!=2 ) { Serial.printf("Error: idle does not have argument\n"); return; }
     tflcam_mode = TFLCAM_MODE_IDLE;
-    Serial.printf("TODO: mode idle\n");
+    cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("once"),argv[1]) ) { 
     if( argc!=2 ) { Serial.printf("Error: once does not have argument\n"); return; }
-    tflcam_mode = TFLCAM_MODE_ONCE;
-    Serial.printf("TODO: mode once\n");
+    tflcam_capture_predict(0);
+    tflcam_mode = TFLCAM_MODE_IDLE;
+    cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("ascii"),argv[1]) ) { 
     if( argc!=2 ) { Serial.printf("Error: ascii does not have argument\n"); return; }
-    tflcam_mode = TFLCAM_MODE_ASCII;
-    Serial.printf("TODO: mode ascii\n");
+    tflcam_capture_predict(1);
+    tflcam_mode = TFLCAM_MODE_IDLE;
+    cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("continuous"),argv[1]) ) { 
     if( argc!=2 ) { Serial.printf("Error: continuous does not have argument\n"); return; }
     tflcam_mode = TFLCAM_MODE_CONTINUOUS;
-    Serial.printf("TODO: mode continuous\n");
+    cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("train"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("Error: train must have one directory name\n"); return; }
     tflcam_mode = TFLCAM_MODE_TRAIN;
+    cmds_mode_show();
     Serial.printf("Press CR to save an image; any non-empty input will abort training mode\n");
     cmds_mode_train_count=0;
     cmd_set_streamprompt("0000");
@@ -230,16 +267,13 @@ static void cmds_cam_imgproc_print() {
 }
 
 static void cmds_img_crop_print() {
-  Serial.printf("crop : (%d,%d) %d*%d, output (%d,%d)\n",cam_crop_left,cam_crop_top,cam_crop_width,cam_crop_height,cam_crop_xsize,cam_crop_ysize);
-  if( cam_crop_width%cam_crop_xsize != 0 ) Serial.printf("Info: width (%d) is not divisible by xsize (%d)\n",cam_crop_width,cam_crop_xsize); 
-  if( cam_crop_height%cam_crop_ysize != 0 ) Serial.printf("Info: height (%d) must be divisible by ysize (%d)\n",cam_crop_height,cam_crop_ysize); 
+  Serial.printf("crop : left %d  top %d  width %d  height %d  xsize %d ysize %d ", cam_crop_left, cam_crop_top, cam_crop_width, cam_crop_height,cam_crop_xsize, cam_crop_ysize);
+  if( cam_crop_width%cam_crop_xsize==0 ) Serial.printf("(poolx %d ",cam_crop_width/cam_crop_xsize); else Serial.printf("(poolx %.2f",cam_crop_width/(float)cam_crop_xsize); 
+  if( cam_crop_height%cam_crop_ysize==0 ) Serial.printf(" pooly %d)\n",cam_crop_height/cam_crop_ysize); else Serial.printf(" pooly %.2f)\n",cam_crop_height/(float)cam_crop_ysize); 
 }
 
 static void cmds_img_img_print() {
-    int xs = cam_crop_xsize;
-    int ys = cam_crop_ysize;
-    if( cam_trans_flags & CAM_TRANS_ROTCW ) { int t=xs; xs=ys; ys=t; }
-    Serial.printf("shape: input %d*%d output %d*%d\n", CAM_CAPTURE_WIDTH, CAM_CAPTURE_HEIGHT,xs,ys);
+  Serial.printf("shape: input %d*%d output %d*%d\n", CAM_CAPTURE_WIDTH, CAM_CAPTURE_HEIGHT,cam_outwidth(),cam_outheight());
 }
 
 // The img command handler
@@ -297,15 +331,15 @@ static void cmds_img_main( int argc, char * argv[] ) {
         if( !ok ) { Serial.printf("Error: error in height value\n"); return; }
         if( height<1 || height>CAM_CAPTURE_HEIGHT ) { Serial.printf("Error: height (%d) must be 1..%d\n",height,CAM_CAPTURE_HEIGHT); return; }
       } else if( cmd_isprefix(PSTR("xsize"),argv[ix]) ) {
-        if( fheight ) { Serial.printf("Error: xsize occurs more then once\n"); return; }
+        if( fxsize ) { Serial.printf("Error: xsize occurs more then once\n"); return; }
         fxsize=1; ix++;
         if( ix>=argc ) { Serial.printf("Error: xsize needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&xsize) ;
         if( !ok ) { Serial.printf("Error: error in xsize value\n"); return; }
         if( xsize<1 || xsize>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: xsize (%d) must be 1..%d\n",xsize,CAM_CAPTURE_WIDTH); return; }
       } else if( cmd_isprefix(PSTR("ysize"),argv[ix]) ) {
-        if( fheight ) { Serial.printf("Error: ysize occurs more then once\n"); return; }
-        fxsize=1; ix++;
+        if( fysize ) { Serial.printf("Error: ysize occurs more then once\n"); return; }
+        fysize=1; ix++;
         if( ix>=argc ) { Serial.printf("Error: ysize needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&ysize) ;
         if( !ok ) { Serial.printf("Error: error in ysize value\n"); return; }
@@ -316,8 +350,8 @@ static void cmds_img_main( int argc, char * argv[] ) {
       ix++;
     }
     // extra tests
-    if( left+width>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: left+width (%d+%d) must not exceed width (%d)\n",left,width,CAM_CAPTURE_WIDTH); return; }
-    if( top+height>CAM_CAPTURE_HEIGHT) { Serial.printf("Error: top+heigth (%d+%d) must not exceed height (%d)\n",top,height,CAM_CAPTURE_HEIGHT); return; }
+    if( left+width>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: left+width (%d+%d) must not exceed cam width (%d)\n",left,width,CAM_CAPTURE_WIDTH); return; }
+    if( top+height>CAM_CAPTURE_HEIGHT) { Serial.printf("Error: top+height (%d+%d) must not exceed cam height (%d)\n",top,height,CAM_CAPTURE_HEIGHT); return; }
     if( xsize*ysize>TFLCAM_MAXPIXELS ) { Serial.printf("Error: resulting size %d*%d exceeds TFL buffer size %d\n",xsize,ysize,TFLCAM_MAXPIXELS); return; }
     // all ok
     cam_crop_left = left;
@@ -423,15 +457,16 @@ static int cmds_img_register(void) {
 }
 
 
-// Configure the commands. Prints problems also to Serial.
+// Registers commands (may be called before cmd_begin). Prints problems also to Serial.
 void cmds_setup() {
   // Registration order is list order
   int num;
-  num=cmdecho_register();     // Register the built-in echo command
-  num=cmds_file_register();   // Register our own file command
-  num=cmdhelp_register();     // Register the built-in help command
-  num=cmds_img_register();    // Register our own img command
-  num=cmds_mode_register();   // Register our own mode command
-  num=cmds_version_register();// Register our own version command
-  if( num>=0 ) Serial.printf("cmds: success\n"); else Serial.printf("cmds: FAIL\n"); // too many commands registered
+  num=cmdecho_register();     // built-in echo command
+  num=cmds_file_register();
+  num=cmdhelp_register();     // built-in help command
+  num=cmds_img_register();
+  num=cmds_mode_register();
+  num=cmds_sys_register();
+  num=cmds_version_register();
+ if( num>=0 ) Serial.printf("cmds: success\n"); else Serial.printf("cmds: FAIL\n"); // too many commands registered
 }

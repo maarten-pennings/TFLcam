@@ -16,11 +16,15 @@ esp_err_t cam_setup();
 // Return success status. Prints problems also to Serial.
 esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled );
 
+// Returns the width and height of the outbuf filled by cam_capture()
+int cam_outwidth();
+int cam_outheight();
+
 
 // Helpers ==================================================================
 
 // Print `img` in hex and ASCII to Serial
-void cam_printframe(uint8_t * img, int xsize, int ysize);
+void cam_printframe(uint8_t * img, int width, int height);
 
 // Set flash LED brightness to `duty` (0..100).
 void cam_fled_set(int duty);
@@ -30,15 +34,15 @@ void cam_fled_set(int duty);
 // These global variables dictate the processing done by cam_capture()
  
  
-// At this moment the cam module is hardwired to QVGA in grayscale, resulting in this resolution.
+// At this moment the cam module is hardwired to QVGA in grayscale, resulting in this camera resolution.
 #define CAM_CAPTURE_WIDTH  320
 #define CAM_CAPTURE_HEIGHT 240
 
 // Settings for the crop (and average) feature of cam_capture()
 extern int cam_crop_left;
 extern int cam_crop_top;
-extern int cam_crop_width;
-extern int cam_crop_height;
+extern int cam_crop_width; // width to crop from camera
+extern int cam_crop_height;// height to crop from camera
 extern int cam_crop_xsize; // output width after averaging
 extern int cam_crop_ysize; // output height after averaging
 
