@@ -1,6 +1,6 @@
 # SD card
 
-This directory contains example SD card images.
+This directory contains example SD card contents.
 
 ## Prepare
 
@@ -25,7 +25,7 @@ After that copy the files from the repo directory [root-rps](root-rps) to the ro
 This step is optional. I noticed that windows makes a hidden directory 
 [System Volume Information](https://answers.microsoft.com/en-us/windows/forum/all/system-volume-information-and-recyclebin/ea26d76a-9792-4ffa-a3ea-4368c0f42609).
 
-If you want you can delete it. Open `cmd` and run these commands.
+If you want, you can delete it. Open `cmd` and run the command `rmdir /s "System Volume Information"`.
 
 ```
 C:\Users\maarten>d:
@@ -52,6 +52,9 @@ Final step is to do a save eject.
 
 ![eject](format3.png)
 
-Put the SD card in the ESP32-CAM and restart (reset) it.
+Put the SD card in the ESP32-CAM, connect it via USB to the host PC.
+
+If you have trouble communicating from your PC to the ESP32, you might have an issue with your terminal 
+program, see this [trouble shooting](https://github.com/maarten-pennings/esp32cam/tree/main/reset).
 
 (end)

@@ -28,17 +28,17 @@ static uint8_t * file_load_buf;
 // Configure the file library (SD card access). Returns success status. Prints problems also to Serial.
 esp_err_t file_setup() {
   bool ok = SD_MMC.begin("/sdcard", true); // true makes sd card not use DATA1 line, which is shared with flash light
-  if( !ok ) { Serial.printf("sd  : FAIL to connect\n"); return ESP_FAIL; }
+  if( !ok ) { Serial.printf("file: FAIL to connect to sd\n"); return ESP_FAIL; }
 
   sdcard_type_t cardtype=SD_MMC.cardType();
   ok = cardtype==CARD_MMC || cardtype==CARD_SD || cardtype==CARD_SDHC;
-  if( !ok ) { Serial.printf("sd  : FAIL (no card)\n"); return ESP_FAIL; }
+  if( !ok ) { Serial.printf("file: FAIL (no sd card)\n"); return ESP_FAIL; }
 
   file_load_buf = (uint8_t*)malloc(FILE_LOAD_BUFSIZE); // we could maybe use ps_malloc(FILE_LOAD_BUFSIZE);
-  if( file_load_buf==0 ) { Serial.printf("sd  : FAIL (no load mem)\n"); return ESP_FAIL; }
+  if( file_load_buf==0 ) { Serial.printf("file: FAIL (no mem buf for load)\n"); return ESP_FAIL; }
   // Serial.printf("heap free=%d\n",ESP.getFreeHeap()); // Hack alert: somehow is helps to allocate the memory on startup (then it is stail avail)
 
-  Serial.printf("sd  : success\n");
+  Serial.printf("file: success\n");
   return ESP_OK;
 }
 
