@@ -1,5 +1,5 @@
 # TFLcam
-Firmware for the ESP32-CAM turning it into a TensorFlow-Lite based classification sensor
+Firmware (arduino sketch) for the ESP32-CAM turning it into a TensorFlow-Lite based classification sensor.
 
 ## Introduction
 
@@ -20,11 +20,11 @@ It also puts a configuration file on the SD card: what is the input of the Tenso
 (e.g. which area of the camera to crop, how much to subsample) and what is the output of the TensorFlow model (how many classes, what are their names).
 
 This means that by writing the two files to the SD card, one can configure the TFLcam to be either a rock-paper-scissors classifier
-or a simple Lego brick classifier.
+or, for example, a simple Lego brick classifier. 
 
 ## Architecture
 
-The core componets of the TFLcam project are
+The core components of the TFLcam project are
  - TensorFlow Lite interpreter
  - command interpreter
  - camera driver
@@ -36,7 +36,7 @@ Another key command is to load the model from the SD card into the TensoFlow int
 These commands commands are typically stored on a file `boot.cmd`:
 
 ```
-// File boot.cmd for rock, paper, scissors
+// boot.cmd for rock, paper, scissors
 image crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46
 labels none paper rock scissors
 file load /rps.tfl
@@ -45,7 +45,97 @@ file load /rps.tfl
 The model (`rps.tfl`) is trained on input images of 28×46 (see crop `xsize` and `ysize`) 
 and expected to output a vector of four classes (see labels `none`, `paper`, `rock`, and `scissors`).
 
+## Sample run
+
+Here is a sample run.
+Observe that the ESP32 boots: it shows a banner and successful initialization of modules.
+Then it runs `boot.cmd`, which configures the input and output for the interpreter, and loads the model.
+
+```
+   _______ ______ _
+  |__   __|  ____| |
+     | |  | |__  | |     ___ __ _ _ __ ___
+     | |  |  __| | |    / __/ _` | '_ ` _ \
+     | |  | |    | |___| (_| (_| | | | | | |
+     |_|  |_|    |______\___\__,_|_| |_| |_|
+TFLcam - TensorFlow Lite camera - version 0.8.0
+
+sd  : success
+cmds: success
+cam : success
+tflu: success
+
+type 'help' for help
+>> 
+>> // boot.cmd for rock, paper, scissors
+>> img crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46
+>> labels none paper rock scissors // order as trained
+>> file load /rps.tfl // 28x46->4
+tflu: model loaded
+>> fled perm
+fled: permanent (duty 100)
+>> mode cont 2
+mode: continuous (stable 2)
+>>
+predict: 0/none
+predict: 2/rock
+predict: 3/scissors
+predict: 1/paper
+predict: 2/rock
+predict: 0/none
+```
+
+Manually I have switched on the flash led `fled perm` and finally I put the sensor in continuous mode, asking for a report when there is a stable change.
+
+I have put my "rock" hand in front of the camera, changed it to scissors, paper and back to rock, and then removed it.
+
+
+## Limitations
+
+At this moment the biggest limitations are that the sketch uses the camera in
+gray scale only (but that could be changed), and the available RAM.
+
+The RAM needs to hold the "Tensors" (the values of the "pixels" in the various layers).
+Secondly, because we opted for a dynamic model, the RAM also needs to hold the model (flatbuffer).
+These are `#define`s in the code, both in the range 10 to 100 kilo byte.
+
+Personally I do not care too much about speed, but that might be different for your application.
+At this moment, the rock paper scissors classifier runs at about 5FPS.
+Note that 2/3 of the time is spend on capture and normalize, and 1/3 on prediction (inference).
+
+```
+>> mode single time
+predict: 0/none
+time: 222 ms, 4.50 FPS (prediction 67 ms)
+>> mode single time
+predict: 0/none
+time: 197 ms, 5.08 FPS (prediction 66 ms)
+>> mode single time
+predict: 0/none
+time: 189 ms, 5.29 FPS (prediction 67 ms)
+>> mode single time
+predict: 0/none
+time: 179 ms, 5.59 FPS (prediction 66 ms)
+>> mode single time
+predict: 1/paper
+time: 168 ms, 5.95 FPS (prediction 66 ms)
+>> mode single time
+predict: 3/scissors
+time: 206 ms, 4.85 FPS (prediction 67 ms)
+>> mode single time
+predict: 2/rock
+time: 226 ms, 4.42 FPS (prediction 67 ms)
+>> mode single time
+predict: 2/rock
+time: 184 ms, 5.43 FPS (prediction 67 ms)
+>> mode single time
+predict: 3/scissors
+time: 182 ms, 5.49 FPS (prediction 67 ms)
+>> mode single time
+predict: 0/none
+time: 190 ms, 5.26 FPS (prediction 66 ms)
+>>
+```
+
 (end)
-
-
 
