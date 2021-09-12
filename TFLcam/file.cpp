@@ -63,7 +63,7 @@ void file_dir(const char * dirpath, uint8_t levels, int indent ) {
       if( levels ) file_dir(file.name(), levels-1, indent+1);
     } else {
       filecount++;
-      Serial.printf("%*c %s (%ul)\n", indent*2+1,' ', file.name(), file.size() );
+      Serial.printf("%*c %s (%u)\n", indent*2+1,' ', file.name(), file.size() );
     }
     file = root.openNextFile();
   }
@@ -94,12 +94,12 @@ void file_run(const char * filepath) {
   if( !file ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n", filepath); return; }
   if( file.isDirectory() ){ Serial.printf("ERROR: is a directory\n"); return; }
 
+  cmd_add('\n'); // Give a prompt for the first line of the script
   while(file.available()){
     cmd_add( file.read() );
   }
   if( cmd_pendingschars()>0 ) cmd_add('\n');
   
-  Serial.printf("\n");
   file.close();
 }
 
@@ -119,4 +119,38 @@ const uint8_t * file_load(const char * filepath) {
   file.close();
   
   return file_load_buf;
+}
+
+
+
+// Writes the imag `img` (resolution `width` by `height`) to file `filepath`.
+// `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
+esp_err_t file_imgwrite(const char * filepath, uint8_t * img, int width, int height) {
+  File file = SD_MMC.open(filepath, FILE_WRITE);
+  if( file.isDirectory() ){ Serial.printf("ERROR: is a directory\n"); return 0; }
+  if( !file ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n", filepath); return ESP_FAIL; }
+
+  bool ok = true;
+  // http://netpbm.sourceforge.net/doc/pgm.html
+  ok &= 0<file.printf("P2 # TFLcam: %s\n",filepath);
+  ok &= 0<file.printf("%d %d # width height\n",width,height);
+  ok &= 0<file.printf("255 # max gray\n",width,height);
+  if( !ok ) { Serial.printf("ERROR: image header write failed\n"); goto fail; }
+
+  for( int y=0; y<height; y++ ) {
+    int count=0;
+    for( int x=0; x<width; x++ ) {
+      ok &= 0<file.printf("%3d ",img[x+y*width]);
+      count+=4;
+      if( count+4>70 ) { ok &= 0<file.printf("\n"); count=0; }
+    }
+    if( count>0 ) ok &= 0<file.printf("\n"); 
+    if( !ok ) { Serial.printf("ERROR: image data write failed\n"); goto fail; }
+  }
+  file.close();
+  return ESP_OK;
+
+fail:
+  file.close();
+  return ESP_FAIL;
 }

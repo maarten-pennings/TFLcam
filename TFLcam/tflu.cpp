@@ -106,13 +106,13 @@ float tflu_get_classprediction(int ix) {
 esp_err_t tflu_set_model(const uint8_t * model) {
   if( tflu_state==TFLU_STATE_STARTUP ) { Serial.printf("ERROR: tflu_setup() not yet called\n"); return ESP_FAIL; }
   if( model==0 ) { tflu_state = TFLU_STATE_SETUP; Serial.printf("ERROR: no model\n"); return ESP_FAIL; }
-  bool res = tflu_interpreter.begin(model); 
+  bool res = tflu_interpreter.begin(model); // todo: second time does not work
   if( res ) {
     tflu_state = TFLU_STATE_MODEL;
-    Serial.printf("tflu: model set\n");  
+    Serial.printf("tflu: model loaded\n");  
   } else  {
     tflu_state = TFLU_STATE_SETUP;
-    Serial.printf("tflu: model set FAIL (%s)\n",tflu_interpreter.errorMessage()); 
+    Serial.printf("tflu: model load FAIL (%s)\n",tflu_interpreter.errorMessage()); 
   }
   return res ? ESP_OK : ESP_FAIL;
 }
@@ -125,5 +125,6 @@ int tflu_predict( uint8_t * frame, int size ) {
   if( tflu_numclasses==0 ) { Serial.printf("ERROR: no class names defined\n"); return -1; }
   tflu_interpreter.predictx( frame, size, tflu_classpredictions, tflu_numclasses); // Needs patch, see predictx in tflu.h
   int index = tflu_index_of_max(tflu_classpredictions, tflu_numclasses);
+  tflu_state = TFLU_STATE_PREDICT;
   return index; 
 }

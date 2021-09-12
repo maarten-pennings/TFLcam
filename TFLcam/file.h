@@ -34,3 +34,8 @@ void file_run(const char * filepath);
 // A next call to this function will free the local buffer and allocate a new buffer for the new file.
 // `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
 const uint8_t * file_load(const char * filepath);
+
+
+// Writes the imag `img` (resolution `width` by `height`) to file `filepath`.
+// `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
+esp_err_t file_imgwrite(const char * filepath, uint8_t * img, int width, int height);

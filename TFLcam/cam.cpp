@@ -33,13 +33,44 @@ static void cam_fled_setup() {
 }
 
 // Set flash LED brightness to `duty` (0..100).
-void cam_fled_set(int duty) {
+static void cam_fled_set(int duty) {
   if( duty<0 ) duty= 0;
   if( duty>100 ) duty= 100;
   duty= duty * ((1<<CAM_FLED_RESOLUTION)-1) / 100;
   ledcWrite(CAM_FLED_CHANNEL, duty);
 }
 
+// Flash LED interface  =========================================================
+
+static int cam_fled_mode;
+static int cam_fled_duty;
+
+// Set the mode of the flash LED: off, only on when shooting images ("auto"), or permanently on.
+void cam_fled_set_mode( int mode ) {
+  if( mode==CAM_FLED_MODE_OFF || mode==CAM_FLED_MODE_AUTO || mode==CAM_FLED_MODE_PERMANENT ) {
+    cam_fled_mode=mode;
+    if( cam_fled_mode==CAM_FLED_MODE_PERMANENT ) cam_fled_set(cam_fled_duty);
+    if( cam_fled_mode==CAM_FLED_MODE_OFF       ) cam_fled_set(CAM_FLED_DUTY_MIN);
+  }
+}
+
+// Get the mode of the flash LED
+int cam_fled_get_mode( ) {
+  return cam_fled_mode;
+}
+
+// The brightness of the flash LED when it is used (auto or permanently)
+void cam_fled_set_duty( int duty ) {
+  if( CAM_FLED_DUTY_MIN<=cam_fled_duty && cam_fled_duty<=CAM_FLED_DUTY_MAX ) {
+    cam_fled_duty=duty;
+    if( cam_fled_mode==CAM_FLED_MODE_PERMANENT ) cam_fled_set(cam_fled_duty);
+  }
+}
+
+// Get the brightness of the flash LED
+int cam_fled_get_duty( ) {
+  return cam_fled_duty;
+}
 
 // Image processing ================================================================
 // Possible image improvement steps.
@@ -236,6 +267,8 @@ static camera_config_t cammodel_config = {
 // Configure the camera. Returns success status. Prints problems also to Serial.
 esp_err_t cam_setup() {
   cam_fled_setup();
+  cam_fled_set_mode( CAM_FLED_MODE_AUTO );
+  cam_fled_set_duty( CAM_FLED_DUTY_MAX );
   // Overwrite some configuration entries (for rest see commodel.h)
   cammodel_config.frame_size = FRAMESIZE_QVGA;
   cammodel_config.pixel_format = PIXFORMAT_GRAYSCALE;
@@ -261,14 +294,12 @@ esp_err_t cam_setup() {
 
 // Capture image with camera, crop, transform, apply image processing,
 // as dictated by configuration variables cam_crop_xxx, cam_trans_xxx, cam_imgproc_xxx.
-// If `fled`<0 the flashlight must be controlled by the caller, using cam_fled_set().
-// Otherwise, the flash light will be turned on with brightness `fled` (0..100) before the shot and off afterwards.
-// Result is stored in outbuf with size outsize. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
+// Result is stored in caller allocated outbuf with size outsize. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
 // Return success status. Prints problems also to Serial.
-esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) {
-  if( fled>=0 ) cam_fled_set(fled);
+esp_err_t cam_capture(uint8_t * outbuf, int outsize ) {
+  if( cam_fled_mode==CAM_FLED_MODE_AUTO ) cam_fled_set(cam_fled_duty);
   camera_fb_t *fb = esp_camera_fb_get();
-  if( fled>=0 ) cam_fled_set(0);
+  if( cam_fled_mode==CAM_FLED_MODE_AUTO ) cam_fled_set(CAM_FLED_DUTY_MIN);
 
   if( !fb ) {
     Serial.printf("cam : fb_get() failed\n");

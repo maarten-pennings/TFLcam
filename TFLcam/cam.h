@@ -10,24 +10,34 @@ esp_err_t cam_setup();
 
 // Capture image with camera, crop, transform, and apply image processing,
 // as dictated by configuration variables cam_crop_xxx, cam_trans_xxx, cam_imgproc_xxx.
-// Result is stored in `outbuf` with size `outsize`. 
-// If `fled`<0 the flashlight must be controlled by the caller, using cam_fled_set().
-// Otherwise, the flash light will be turned on with brightness `fled` (0..100) before the shot and off afterwards.
+// Result is stored in caller allocated `outbuf` with size `outsize`. 
 // Return success status. Prints problems also to Serial.
-esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled );
+esp_err_t cam_capture(uint8_t * outbuf, int outsize );
 
 // Returns the width and height of the outbuf filled by cam_capture()
 int cam_outwidth();
 int cam_outheight();
 
-
-// Helpers ==================================================================
-
 // Print `img` in hex and ASCII to Serial
 void cam_printframe(uint8_t * img, int width, int height);
 
-// Set flash LED brightness to `duty` (0..100).
-void cam_fled_set(int duty);
+
+// Flash LED control ========================================================
+#define CAM_FLED_MODE_OFF        0 // Flash LED always off - cam_fled_set_mode()
+#define CAM_FLED_MODE_AUTO       1 // Flash LED automatically on during shots
+#define CAM_FLED_MODE_PERMANENT  2 // Flash LED permanently on
+
+#define CAM_FLED_DUTY_MIN        0 
+#define CAM_FLED_DUTY_MAX        100
+
+// Set the mode of the flash LED: off, only on when shooting images ("auto"), or permanently on.
+void cam_fled_set_mode( int mode );
+// Get the mode of the flash LED
+int cam_fled_get_mode( );
+// The brightness of the flash LED when it is used (auto or permanently)
+void cam_fled_set_duty( int duty );
+// Get the brightness of the flash LED
+int cam_fled_get_duty( );
 
 
 // Configuration ============================================================

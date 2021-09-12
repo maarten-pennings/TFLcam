@@ -142,6 +142,75 @@ static int cmds_labels_register(void) {
 }
 
 
+// cmds_fled =================================================================================
+
+
+static void cmds_fled_show() {
+  Serial.printf("fled: ");
+  if( cam_fled_get_mode()==CAM_FLED_MODE_OFF ) Serial.printf("off");
+  if( cam_fled_get_mode()==CAM_FLED_MODE_AUTO ) Serial.printf("auto");
+  if( cam_fled_get_mode()==CAM_FLED_MODE_PERMANENT ) Serial.printf("permanent");
+  Serial.printf(" (duty %d)",cam_fled_get_duty());
+  if( cam_fled_get_duty()==0 ) Serial.printf(" [warn: duty 0 instead of mode off]"); 
+  Serial.printf("\n");
+}
+
+// The fled command handler
+static void cmds_fled_main( int argc, char * argv[] ) {
+  if( argc==1 ) {
+    cmds_fled_show();
+    return;
+  }
+  int mode;
+  int duty;
+  int fmode=0;
+  int fduty=0;
+  int ix=1;
+  while( ix<argc ) {
+    if( cmd_isprefix(PSTR("off"),argv[ix]) ) {
+      if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
+      mode=CAM_FLED_MODE_OFF;
+      fmode=1;
+    } else if( cmd_isprefix(PSTR("auto"),argv[ix]) ) {
+      if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
+      mode=CAM_FLED_MODE_AUTO;
+      fmode=1;
+    } else if( cmd_isprefix(PSTR("permanent"),argv[ix]) ) {
+      if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
+      mode=CAM_FLED_MODE_PERMANENT;
+      fmode=1;
+    } else {
+      bool ok = cmd_parse_dec(argv[ix],&duty) ;
+      if( !ok ) { Serial.printf("ERROR: expected mode or duty, not '%s'\n",argv[ix]); return; }
+      if( duty<0 || duty>100 ) { Serial.printf("ERROR: duty (%d) must be 0..100\n",duty); return; }
+      if( fduty==1 ) { Serial.printf("ERROR: duty occurs more then once\n"); return; }
+      fduty=1;
+    }
+    ix++;      
+  }
+  if( fmode ) cam_fled_set_mode(mode);
+  if( fduty ) cam_fled_set_duty(duty);
+  if( argv[0][0]!='@') cmds_fled_show();
+}
+
+
+// Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
+static const char cmds_fled_longhelp[] PROGMEM = 
+  "SYNTAX: fled ( off | auto | permanent | <duty> )...\n"
+  "- without arguments, prints the flash led mode and duty cycle\n"
+  "- with mode, sets it to 'off', on when shooting ('auto'), or 'permanently' on\n"
+  "- with <duty>, sets the duty cycle (0..100)\n"
+  "NOTES:\n"
+  "- supports @-prefix to suppress output\n"
+;
+
+
+// Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
+static int cmds_fled_register(void) {
+  return cmd_register(cmds_fled_main, PSTR("fled"), PSTR("controls the flash led"), cmds_fled_longhelp);
+}
+
+
 // cmds_version =================================================================================
 
 
@@ -192,7 +261,7 @@ static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
 
 static void cmds_mode_show() {
   if( tflcam_mode==TFLCAM_MODE_IDLE ) Serial.printf("mode: idle\n");
-  else if( tflcam_mode==TFLCAM_MODE_CONTINUOUS ) Serial.printf("mode: continuous\n");
+  else if( tflcam_mode==TFLCAM_MODE_CONTINUOUS ) Serial.printf("mode: continuous (stable %d)\n",tflcam_mode_sub);
   else if( tflcam_mode==TFLCAM_MODE_TRAIN ) Serial.printf("mode: train\n");
   else Serial.printf("mode: <unknown>\n");
 }
@@ -210,26 +279,42 @@ static void cmds_mode_main( int argc, char * argv[] ) {
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("single"),argv[1]) ) { 
-    int fascii=0;
+    char * savename=0;
+    int fall=0;
+    int fimage=0;
     int fvector=0;
     int ftime=0;
+    int fsave=0;
     int ix=2;
     while( ix<argc ) {
-      if( cmd_isprefix(PSTR("ascii"),argv[ix]) ) {
-        if( fascii==1 ) { Serial.printf("ERROR: ascii occurs more then once\n"); return; }
-        fascii=1;
+      if( cmd_isprefix(PSTR("all"),argv[ix]) ) {
+        if( fall==1 ) { Serial.printf("ERROR: all occurs more then once\n"); return; }
+        fall=1;
+      } else if( cmd_isprefix(PSTR("image"),argv[ix]) ) {
+        if( fimage==1 ) { Serial.printf("ERROR: image occurs more then once\n"); return; }
+        if( fall==1 ) { Serial.printf("ERROR: image occurs with all\n"); return; }
+        fimage=1;
       } else if( cmd_isprefix(PSTR("vector"),argv[ix]) ) {
         if( fvector==1 ) { Serial.printf("ERROR: vector occurs more then once\n"); return; }
+        if( fall==1 ) { Serial.printf("ERROR: vector occurs with all\n"); return; }
         fvector=1;
       } else if( cmd_isprefix(PSTR("time"),argv[ix]) ) {
         if( ftime==1 ) { Serial.printf("ERROR: time occurs more then once\n"); return; }
+        if( fall==1 ) { Serial.printf("ERROR: time occurs with all\n"); return; }
         ftime=1;
+      } else if( cmd_isprefix(PSTR("save"),argv[ix]) ) {
+        if( fsave==1 ) { Serial.printf("ERROR: save occurs more then once\n"); return; }
+        fsave=1;
+        ix++;
+        if( ix>=argc ) { Serial.printf("ERROR: save needs a filename\n"); return; }
+        savename = argv[ix];
       } else {
         Serial.printf("ERROR: unknown flag (%s)\n", argv[ix]); return;
       }
       ix++;      
     }
-    tflcam_shoot( fascii*TFLCAM_SHOOT_ASCII + fvector*TFLCAM_SHOOT_VECTOR + ftime*TFLCAM_SHOOT_TIME + TFLCAM_SHOOT_PREDICT);
+    int flags = fall*TFLCAM_SHOOT_ALL | fimage*TFLCAM_SHOOT_IMAGE | fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
+    tflcam_shoot( flags, savename );
     if( tflcam_mode != TFLCAM_MODE_IDLE ) { 
       tflcam_mode = TFLCAM_MODE_IDLE;
       cmds_mode_show();
@@ -237,8 +322,16 @@ static void cmds_mode_main( int argc, char * argv[] ) {
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("continuous"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("ERROR: continuous does not have argument\n"); return; }
+    int submode=0; // default: report all, not changes
+    if( argc>2 ) { 
+      bool ok = cmd_parse_dec(argv[2],&submode);
+      if( !ok ) { Serial.printf("ERROR: error in continuous <num>\n"); return; }
+      if( submode<1 ) { Serial.printf("ERROR: continuous <num> (%d) must be 1..\n",submode); return; }
+      if( argc>3 ) { Serial.printf("ERROR: unexpected continuous argument '%s'\n", argv[3]); return; }
+    }
     tflcam_mode = TFLCAM_MODE_CONTINUOUS;
+    tflcam_mode_sub = submode;
+    tflcam_reset_predictions_reporting( );
     cmds_mode_show();
     return;
   }
@@ -259,16 +352,20 @@ static void cmds_mode_main( int argc, char * argv[] ) {
 // Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
 static const char cmds_mode_longhelp[] PROGMEM = 
   "SYNTAX: mode\n"
-  "- shows active mode\n"
+  "- shows active mode (never shows single)\n"
   "SYNTAX: mode idle\n"
   "- switch camera off, no TensorFlow predictions\n"
-  "SYNTAX: mode single ( ascii | vector | time )...\n"
+  "SYNTAX: mode single ( all | image | vector | time | save <name> )...\n"
   "- takes a single shot, prints prediction, goes to idle mode\n"
-  "- ascii also output ASCII version of frame buffer\n"
-  "- vector also outputs the probabilities of all classes\n"
-  "- time also outputs elapsed time\n"
-  "SYNTAX: mode continuous\n"
-  "- takes a shot, prints prediction, and loops\n"
+  "- 'image' also outputs ASCII rendering of the image\n"
+  "- 'vector' also outputs the probabilities of all classes\n"
+  "- 'time' also outputs elapsed time\n"
+  "- 'all' is a shorthand for 'image vector time'\n"
+  "- 'save' saves image on sd card under <name> (suggested extension: .pgm)\n"
+  "SYNTAX: mode continuous [ <num> ]\n"
+  "- takes a shot, predicts, and loops\n"
+  "- without <num> prints every predictions\n"
+  "- with <num>, only prints if prdecition changes, and is stable for <num> loops\n"
   "- typically stopped with command 'mode idle'\n"
   "SYNTAX: mode train <dir>\n"
   "- goes in training mode: after each CR an image is saved in <dir>\n"
@@ -314,6 +411,8 @@ static void cmds_file_main( int argc, char * argv[] ) {
   if( argc>=2 && cmd_isprefix(PSTR("run"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: run must have one filename\n"); return; }
     file_run(argv[2]);
+    // The script ends with printing a prompt. When cmds_file_main() returns another a prompt is printed. We seperate that.
+    Serial.printf("\n\n"); 
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("load"),argv[1]) ) { 
@@ -393,7 +492,7 @@ static void cmds_img_crop_print() {
   if( cam_crop_height%cam_crop_ysize==0 ) Serial.printf("%d",cam_crop_height/cam_crop_ysize); else Serial.printf("%.2f",cam_crop_height/(float)cam_crop_ysize); 
   Serial.print(")");
   if( cam_crop_width%cam_crop_xsize!=0 || cam_crop_height%cam_crop_ysize!=0 ) Serial.printf(" [warn: pool float]"); 
-  if( 100*cam_crop_width/cam_crop_xsize != 100*cam_crop_height/cam_crop_ysize )  Serial.printf(" [warn: pool not equal]"); 
+  if( 100*cam_crop_width/cam_crop_xsize != 100*cam_crop_height/cam_crop_ysize ) Serial.printf(" [warn: pool not equal]"); 
   Serial.print("\n");
 }
 
@@ -588,6 +687,7 @@ void cmds_setup() {
   int num;
   num=cmdecho_register();     // built-in echo command
   num=cmds_file_register();
+  num=cmds_fled_register();
   num=cmdhelp_register();     // built-in help command
   num=cmds_img_register();
   num=cmds_labels_register();
