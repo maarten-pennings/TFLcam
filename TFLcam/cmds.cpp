@@ -1,6 +1,7 @@
 // cmds.cpp - the commands used by TFLcam
 #include <Arduino.h>
-#include "core_version.h" // ARDUINO_ESP32_GIT_VER, ARDUINO_ESP32_GIT_DESC, ARDUINO_ESP32_RELEASE
+#include "core_version.h"   // ARDUINO_ESP32_GIT_VER, ARDUINO_ESP32_GIT_DESC, ARDUINO_ESP32_RELEASE
+#include <EloquentTinyML.h> // For version of TensorFlow lite for ESP32, from https://github.com/eloquentarduino/EloquentTinyML
 
 #include "cmd.h"          // command interpreter
 #include "cmds.h"         // own interface
@@ -9,13 +10,32 @@
 #include "TFLcam.h"       // application
 #include "file.h"         // operations on sd card files
 #include "cam.h"          // camera configuration
+#include "tflu.h"         // TensorFlow lite configuration (of classes)
 
 
 // cmds_sys =====================================================================================
 
+#include "esp32-hal-cpu.h" // see C:\Users\maarten\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6\cores\esp32\esp32-hal-cpu.h
+
+void cmds_sys_show() {
+  Serial.printf( "clk: %u MHz (xtal %u MHz)\n",getCpuFrequencyMhz(), getXtalFrequencyMhz() );
+}
+
 
 // The sys command handler
 static void cmds_sys_main( int argc, char * argv[] ) {
+  if( argc==2 && cmd_isprefix(PSTR("clk"),argv[1])) {
+    cmds_sys_show();
+    return;
+  }
+  if( argc>=2 && cmd_isprefix(PSTR("clk"),argv[1])) {
+    int clk;
+    bool ok = cmd_parse_dec(argv[2],&clk) ;
+    if( !ok ) { Serial.printf("ERROR: error in frequency\n"); return; }
+    setCpuFrequencyMhz(clk); //  240, 160, 80
+    if( argv[0][0]!='@') cmds_sys_show();
+    return;
+  }
   if( argc==2 && cmd_isprefix(PSTR("reboot"),argv[1])) {
     ESP.restart();
   }
@@ -25,16 +45,58 @@ static void cmds_sys_main( int argc, char * argv[] ) {
 
 // Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
 static const char cmds_sys_longhelp[] PROGMEM = 
+  "SYNTAX: sys clk <freq>\n"
+  "- without arguments shows clock frequency\n"
+  "- with argument sets clock frequency\n"
+  "- valid values are 10, 20, 40, 80, 160, 240, but camera needs >=80\n"
   "SYNTAX: sys reboot\n"
   "- reboot the system\n"
+  "NOTES:\n"
+  "- supports @-prefix to suppress output\n"
 ;
-
-// TODO: sys clk - to get and set clock
-// TODO: WiFi off?
 
 // Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
 static int cmds_sys_register(void) {
   return cmd_register(cmds_sys_main, PSTR("sys"), PSTR("system commands (like reboot)"), cmds_sys_longhelp);
+}
+
+
+// cmds_labels =================================================================================
+
+
+static void cmds_labels_show() {
+  int count= tflu_get_numclasses();
+  Serial.printf("labels (%d):", count);
+  for( int i=0; i<count; i++ ) Serial.printf(" %s",tflu_get_classname(i) );
+  Serial.printf("\n");
+}
+
+
+// The labels command handler
+static void cmds_labels_main( int argc, char * argv[] ) {
+  if( argc==1 ) {
+    cmds_labels_show();
+    return;
+  }
+  tflu_set_numclasses(argc-1);
+  for( int i=1; i<argc; i++ ) tflu_set_classname(i-1,argv[i]);
+  if( argv[0][0]!='@') cmds_labels_show();
+}
+
+
+// Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
+static const char cmds_labels_longhelp[] PROGMEM = 
+  "SYNTAX: labels <label>...\n"
+  "- without arguments, prints the labels for the prediction classes\n"
+  "- with arguments, set the labels\n"
+  "NOTES:\n"
+  "- supports @-prefix to suppress output\n"
+;
+
+
+// Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
+static int cmds_labels_register(void) {
+  return cmd_register(cmds_labels_main, PSTR("labels"), PSTR("sets labels for the prediction classes"), cmds_labels_longhelp);
 }
 
 
@@ -46,6 +108,7 @@ static void cmds_version_main( int argc, char * argv[] ) {
   if( argc==1 ) {
     Serial.printf( "app     : %s (%s) %s\n", TFLCAM_LONGNAME, TFLCAM_SHORTNAME, TFLCAM_VERSION);
     if( argv[0][0]!='@') Serial.printf( "library : cmd %s\n", CMD_VERSION);
+    if( argv[0][0]!='@') Serial.printf( "library : EloquentTinyML %s\n", ELOQUENT_TINYML_VERSION);
     if( argv[0][0]!='@') Serial.printf( "runtime : " ARDUINO_ESP32_RELEASE "\n" );
     if( argv[0][0]!='@') Serial.printf( "compiler: " __VERSION__ "\n" );
     if( argv[0][0]!='@') Serial.printf( "arduino : %d\n",ARDUINO );
@@ -76,6 +139,7 @@ static int cmds_mode_train_count;
 
 static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
   if( argc==0 ) {
+    // todo: implement saving the cropped image frame
     cmds_mode_train_count++;
     char buf[5]; snprintf(buf,sizeof buf, "%04d",cmds_mode_train_count); cmd_set_streamprompt(buf);
   } else {
@@ -103,18 +167,31 @@ static void cmds_mode_main( int argc, char * argv[] ) {
     cmds_mode_show();
     return;
   }
-  if( argc>=2 && cmd_isprefix(PSTR("once"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("ERROR: once does not have argument\n"); return; }
-    tflcam_capture_predict(0);
-    tflcam_mode = TFLCAM_MODE_IDLE;
-    cmds_mode_show();
-    return;
-  }
-  if( argc>=2 && cmd_isprefix(PSTR("ascii"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("ERROR: ascii does not have argument\n"); return; }
-    tflcam_capture_predict(1);
-    tflcam_mode = TFLCAM_MODE_IDLE;
-    cmds_mode_show();
+  if( argc>=2 && cmd_isprefix(PSTR("single"),argv[1]) ) { 
+    int fascii=0;
+    int fvector=0;
+    int ftime=0;
+    int ix=2;
+    while( ix<argc ) {
+      if( cmd_isprefix(PSTR("ascii"),argv[ix]) ) {
+        if( fascii==1 ) { Serial.printf("ERROR: ascii occurs more then once\n"); return; }
+        fascii=1;
+      } else if( cmd_isprefix(PSTR("vector"),argv[ix]) ) {
+        if( fvector==1 ) { Serial.printf("ERROR: vector occurs more then once\n"); return; }
+        fvector=1;
+      } else if( cmd_isprefix(PSTR("time"),argv[ix]) ) {
+        if( ftime==1 ) { Serial.printf("ERROR: time occurs more then once\n"); return; }
+        ftime=1;
+      } else {
+        Serial.printf("ERROR: unknown flag (%s)\n", argv[ix]); return;
+      }
+      ix++;      
+    }
+    tflcam_shoot( fascii*TFLCAM_SHOOT_ASCII + fvector*TFLCAM_SHOOT_VECTOR + ftime*TFLCAM_SHOOT_TIME + TFLCAM_SHOOT_PREDICT);
+    if( tflcam_mode != TFLCAM_MODE_IDLE ) { 
+      tflcam_mode = TFLCAM_MODE_IDLE;
+      cmds_mode_show();
+    }
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("continuous"),argv[1]) ) { 
@@ -143,13 +220,13 @@ static const char cmds_mode_longhelp[] PROGMEM =
   "- shows active mode\n"
   "SYNTAX: mode idle\n"
   "- switch camera off, no TensorFlow predictions\n"
-  "SYNTAX: mode once\n"
-  "- takes a single shot, and prints TensorFlow prediction, goes to idle mode\n"
-  "SYNTAX: mode ascii\n"
-  "- same as 'once' but also prints an ASCII rendering of the (cropped) camera image\n"
-  "- typically used during configuration for training\n"
+  "SYNTAX: mode single ( ascii | vector | time )...\n"
+  "- takes a single shot, prints prediction, goes to idle mode\n"
+  "- ascii also output ASCII version of frame buffer\n"
+  "- vector also outputs the probabilities of all classes\n"
+  "- time also outputs elapsed time\n"
   "SYNTAX: mode continuous\n"
-  "- same as once but does not go to idle\n"
+  "- takes a shot, prints prediction, and loops\n"
   "- typically stopped with command 'mode idle'\n"
   "SYNTAX: mode train <dir>\n"
   "- goes in training mode: after each CR an image is saved in <dir>\n"
@@ -221,7 +298,7 @@ static const char cmds_file_longhelp[] PROGMEM =
   "- loads the flatbuffer file with 'name' into the TensorFlow interpreter\n"
   "NOTES:\n"
   "- supports subdirectories (separated with '/'), always address from root\n"
-  "- if '/boot.cmd' exists, it will automatically be run on startup\n"
+  "- script '/boot.cmd' will automatically be run on startup\n"
 ;
 
 // Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
@@ -374,31 +451,31 @@ static void cmds_img_main( int argc, char * argv[] ) {
       cmds_img_trans_print(1);
       return;
     }
-    if( argc==3 && cmd_isprefix(PSTR("none"),argv[2]) ) { 
-      cam_trans_flags=0;
-      if( argv[0][0]!='@') cmds_img_trans_print(1);
-      return;
-    }
-    int vflip=0;
-    int hmirror=0;
-    int rotcw=0;
+    int fvflip=0;
+    int fhmirror=0;
+    int frotcw=0;
+    int fnone=0;
     int ix=2;
     while( ix<argc ) {
-      if( cmd_isprefix(PSTR("vflip"),argv[ix]) ) {
-        if( vflip==1 ) { Serial.printf("ERROR: vflip occurs more then once\n"); return; }
-        vflip=1;
+      if( cmd_isprefix(PSTR("none"),argv[ix]) ) {
+        if( fnone==1 ) { Serial.printf("ERROR: none occurs more then once\n"); return; }
+        fnone=1;
+      } else if( cmd_isprefix(PSTR("vflip"),argv[ix]) ) {
+        if( fvflip==1 ) { Serial.printf("ERROR: vflip occurs more then once\n"); return; }
+        fvflip=1;
       } else if( cmd_isprefix(PSTR("hmirror"),argv[ix]) ) {
-        if( hmirror==1 ) { Serial.printf("ERROR: hmirror occurs more then once\n"); return; }
-        hmirror=1;
+        if( fhmirror==1 ) { Serial.printf("ERROR: hmirror occurs more then once\n"); return; }
+        fhmirror=1;
       } else if( cmd_isprefix(PSTR("rotcw"),argv[ix]) ) {
-        if( rotcw==1 ) { Serial.printf("ERROR: rotcw occurs more then once\n"); return; }
-        rotcw=1;
+        if( frotcw==1 ) { Serial.printf("ERROR: rotcw occurs more then once\n"); return; }
+        frotcw=1;
       } else {
         Serial.printf("ERROR: unknown transformation (%s)\n", argv[ix]); return;
       }
       ix++;      
     }
-    cam_trans_flags = vflip*CAM_TRANS_VFLIP + hmirror*CAM_TRANS_HMIRROR + rotcw*CAM_TRANS_ROTCW;
+    if( fnone>0 && fvflip+fhmirror+frotcw>0 ) { Serial.printf("ERROR: none can not be combined with others\n"); return; }
+    cam_trans_flags = fvflip*CAM_TRANS_VFLIP + fhmirror*CAM_TRANS_HMIRROR + frotcw*CAM_TRANS_ROTCW;
     if( argv[0][0]!='@') cmds_img_trans_print(1);
     return;
   }
@@ -442,7 +519,7 @@ static const char cmds_img_longhelp[] PROGMEM =
   "- with arguments sets crop configuration\n"
   "- crop rectangle starts at top,left and has size width*height\n"
   "- crop averages so that output has size xsize,ysize\n"
-  "SYNTAX: img trans ( none | [vflip] [hmirror] [rotcw] )\n"
+  "SYNTAX: img trans ( none | vflip | hmirror | rotcw )...\n"
   "- without arguments show current transformation settings (\"flip image\")\n"
   "- 'none' removes all transformation settings\n"
   "- use one or more of 'vflip', 'hmirror', or 'rotcw'\n"
@@ -470,6 +547,7 @@ void cmds_setup() {
   num=cmds_file_register();
   num=cmdhelp_register();     // built-in help command
   num=cmds_img_register();
+  num=cmds_labels_register();
   num=cmds_mode_register();
   num=cmds_sys_register();
   num=cmds_version_register();

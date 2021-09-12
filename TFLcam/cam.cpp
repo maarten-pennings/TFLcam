@@ -1,4 +1,4 @@
-// cam.cpp - camera control and image post processing 
+// cam.cpp - camera control and image post processing
 #include <Arduino.h>
 #include "esp_camera.h" // The camera driver,see https://github.com/espressif/esp32-camera/tree/master/driver
 #include "cam.h"        // own interface
@@ -9,8 +9,8 @@ int cam_crop_left;
 int cam_crop_top;
 int cam_crop_width;
 int cam_crop_height;
-int cam_crop_xsize; 
-int cam_crop_ysize; 
+int cam_crop_xsize;
+int cam_crop_ysize;
 int cam_trans_flags;
 int cam_imgproc_flags;
 
@@ -37,7 +37,7 @@ void cam_fled_set(int duty) {
   if( duty<0 ) duty= 0;
   if( duty>100 ) duty= 100;
   duty= duty * ((1<<CAM_FLED_RESOLUTION)-1) / 100;
-  ledcWrite(CAM_FLED_CHANNEL, duty); 
+  ledcWrite(CAM_FLED_CHANNEL, duty);
 }
 
 
@@ -48,8 +48,8 @@ void cam_fled_set(int duty) {
 // Histogram equalization (https://en.wikipedia.org/wiki/Histogram_equalization)
 static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define COLS 256       // Number of colors
-  static int bins[COLS]; // Histogram bins 
-  
+  static int bins[COLS]; // Histogram bins
+
   // Histogram bins cleared to 0
   for( int i = 0; i<COLS; i++ ) bins[i]=0;
   // Histogram bins count pixel data from image
@@ -72,7 +72,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
 //   CAMMODEL_ESP_EYE
 //   CAMMODEL_M5STACK_PSRAM
 //   CAMMODEL_M5STACK_WIDE
-#define  CAMMODEL_AI_THINKER 
+#define  CAMMODEL_AI_THINKER
 
 
 // Define the pins with which the camera is attached.
@@ -86,7 +86,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_XCLK      0
   #define CAMMODEL_SIOD     26
   #define CAMMODEL_SIOC     27
-  
+
   #define CAMMODEL_Y9       35
   #define CAMMODEL_Y8       34
   #define CAMMODEL_Y7       39
@@ -95,7 +95,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_Y4       19
   #define CAMMODEL_Y3       18
   #define CAMMODEL_Y2        5
-  
+
   #define CAMMODEL_VSYNC    25
   #define CAMMODEL_HREF     23
   #define CAMMODEL_PCLK     22
@@ -107,7 +107,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_XCLK    21
   #define CAMMODEL_SIOD    26
   #define CAMMODEL_SIOC    27
-  
+
   #define CAMMODEL_Y9      35
   #define CAMMODEL_Y8      34
   #define CAMMODEL_Y7      39
@@ -116,7 +116,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_Y4      18
   #define CAMMODEL_Y3       5
   #define CAMMODEL_Y2       4
-  
+
   #define CAMMODEL_VSYNC   25
   #define CAMMODEL_HREF    23
   #define CAMMODEL_PCLK    22
@@ -128,7 +128,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_XCLK    4
   #define CAMMODEL_SIOD    18
   #define CAMMODEL_SIOC    23
-  
+
   #define CAMMODEL_Y9      36
   #define CAMMODEL_Y8      37
   #define CAMMODEL_Y7      38
@@ -137,7 +137,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_Y4      14
   #define CAMMODEL_Y3      13
   #define CAMMODEL_Y2      34
-  
+
   #define CAMMODEL_VSYNC   5
   #define CAMMODEL_HREF    27
   #define CAMMODEL_PCLK    25
@@ -149,7 +149,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_XCLK     27
   #define CAMMODEL_SIOD     25
   #define CAMMODEL_SIOC     23
-  
+
   #define CAMMODEL_Y9       19
   #define CAMMODEL_Y8       36
   #define CAMMODEL_Y7       18
@@ -158,7 +158,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_Y4       34
   #define CAMMODEL_Y3       35
   #define CAMMODEL_Y2       32
-  
+
   #define CAMMODEL_VSYNC    22
   #define CAMMODEL_HREF     26
   #define CAMMODEL_PCLK     21
@@ -170,7 +170,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_XCLK     27
   #define CAMMODEL_SIOD     22
   #define CAMMODEL_SIOC     23
-  
+
   #define CAMMODEL_Y9       19
   #define CAMMODEL_Y8       36
   #define CAMMODEL_Y7       18
@@ -179,7 +179,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
   #define CAMMODEL_Y4       34
   #define CAMMODEL_Y3       35
   #define CAMMODEL_Y2       32
-  
+
   #define CAMMODEL_VSYNC    25
   #define CAMMODEL_HREF     26
   #define CAMMODEL_PCLK     21
@@ -187,7 +187,7 @@ static void cam_imgproc_histeq(uint8_t * img, int imgsize) {
 #else
 
   #error "Camera model not selected"
-  
+
 #endif
 
 
@@ -241,7 +241,7 @@ esp_err_t cam_setup() {
   cammodel_config.pixel_format = PIXFORMAT_GRAYSCALE;
   // Configure the camera on the board
   esp_err_t err = esp_camera_init(&cammodel_config);
-  // Defaults for crop  
+  // Defaults for crop
   cam_crop_left = 0;
   cam_crop_top = 0;
   cam_crop_width = (CAM_CAPTURE_WIDTH/8)*5;
@@ -251,10 +251,10 @@ esp_err_t cam_setup() {
   // Defaults for image processing
   cam_imgproc_flags = 0;
   // Print and return success
-  if( err==ESP_OK ) 
-    Serial.printf("cam : success\n"); 
-  else 
-    Serial.printf("cam : FAIL (%d: s)\n",err, esp_err_to_name(err)); 
+  if( err==ESP_OK )
+    Serial.printf("cam : success\n");
+  else
+    Serial.printf("cam : FAIL (%d: s)\n",err, esp_err_to_name(err));
   return err;
 }
 
@@ -265,36 +265,36 @@ esp_err_t cam_setup() {
 // Otherwise, the flash light will be turned on with brightness `fled` (0..100) before the shot and off afterwards.
 // Result is stored in outbuf with size outsize. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
 // Return success status. Prints problems also to Serial.
-esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) { // TODO fled mode
+esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) {
   if( fled>=0 ) cam_fled_set(fled);
   camera_fb_t *fb = esp_camera_fb_get();
   if( fled>=0 ) cam_fled_set(0);
-  
+
   if( !fb ) {
-    Serial.printf("cam : fb_get() failed\n"); 
+    Serial.printf("cam : fb_get() failed\n");
     return ESP_ERR_INVALID_STATE;
   }
 
   // These are "assert", you may leave them out
   if( fb->width!=CAM_CAPTURE_WIDTH ) {
-    Serial.printf("cam : mismatch in configured and actual frame width\n"); 
+    Serial.printf("cam : mismatch in configured and actual frame width\n");
     return ESP_FAIL;
   }
   if( fb->height!=CAM_CAPTURE_HEIGHT ) {
-    Serial.printf("cam : mismatch in configured and actual frame height\n"); 
+    Serial.printf("cam : mismatch in configured and actual frame height\n");
     return ESP_FAIL;
   }
   if( fb->format!=PIXFORMAT_GRAYSCALE ) {
-    Serial.printf("cam : mismatch in configured and actual frame format\n"); 
+    Serial.printf("cam : mismatch in configured and actual frame format\n");
     return ESP_FAIL;
   }
 
   // A run-time check on outsize
   if( cam_crop_xsize*cam_crop_ysize > outsize ) {
-    Serial.printf("cam : outsize (%d) too small given crop %d*%d\n", outsize, cam_crop_xsize, cam_crop_ysize); 
+    Serial.printf("cam : outsize (%d) too small given crop %d*%d\n", outsize, cam_crop_xsize, cam_crop_ysize);
     return ESP_ERR_INVALID_SIZE;
   }
-  
+
   // Crop and transform
   for( int yp=0; yp<cam_crop_ysize; yp++ ) {
     for( int xp=0; xp<cam_crop_xsize; xp++ ) {
@@ -304,7 +304,7 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) { // TODO fled m
       for( int yi=cam_crop_top+yp*cam_crop_height/cam_crop_ysize; yi<cam_crop_top+(yp+1)*cam_crop_height/cam_crop_ysize; yi++ ) {
         for( int xi=cam_crop_left+xp*cam_crop_width/cam_crop_xsize; xi<cam_crop_left+(xp+1)*cam_crop_width/cam_crop_xsize; xi++ ) {
           // (xi,yi) is the coordinate of the pixel in the averaging block
-          sum+= fb->buf[xi+CAM_CAPTURE_WIDTH*yi]; 
+          sum+= fb->buf[xi+CAM_CAPTURE_WIDTH*yi];
           count++;
         }
       }
@@ -320,11 +320,11 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) { // TODO fled m
     }
   }
 
-  // Image processing 
+  // Image processing
   if( cam_imgproc_flags & CAM_IMGPROC_HISTEQ ) {
-    cam_imgproc_histeq(outbuf, cam_crop_xsize*cam_crop_ysize ); 
+    cam_imgproc_histeq(outbuf, cam_crop_xsize*cam_crop_ysize );
   }
-  
+
   return ESP_OK;
 }
 

@@ -35,7 +35,7 @@ esp_err_t file_setup() {
 
 void file_dir(const char * dirname, uint8_t levels, int indent ) {
   File root = SD_MMC.open(dirname);
-  if( !root ) { Serial.println("ERROR: could not open (root slash missing?)"); return; }
+  if( !root ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n",dirname); return; }
   if( !root.isDirectory() ){ Serial.println("ERROR: not a directory"); return; }
 
   if( indent==0 ) Serial.printf("dir: '%s'\n", dirname);
@@ -60,7 +60,7 @@ void file_dir(const char * dirname, uint8_t levels, int indent ) {
 
 void file_show(const char * path) {
   File file = SD_MMC.open(path);
-  if( !file ) { Serial.println("ERROR: could not open (root slash missing?)"); return; }
+  if( !file ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n", path); return; }
   if( file.isDirectory() ){ Serial.println("ERROR: is a directory"); return; }
 
   while(file.available()){
@@ -72,7 +72,7 @@ void file_show(const char * path) {
 
 void file_run(const char * path) {
   File file = SD_MMC.open(path);
-  if( !file ) { Serial.println("ERROR: could not open (root slash missing?)"); return; }
+  if( !file ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n", path); return; }
   if( file.isDirectory() ){ Serial.println("ERROR: is a directory"); return; }
 
   while(file.available()){

@@ -1,7 +1,7 @@
 // TFLcam.h - interface to TensorFlow Lite camera application
 
 // Application version
-#define TFLCAM_VERSION "0.5.0"
+#define TFLCAM_VERSION "0.6.0"
 #define TFLCAM_SHORTNAME "TFLcam"
 #define TFLCAM_LONGNAME "TensorFlow Lite camera"
 
@@ -17,5 +17,10 @@ extern int tflcam_mode;
 #define TFLCAM_MAXPIXELS  10000
 
 
-// Runs a full capture (crop, transform, image process) and predict cycle. If ascii, dumps image to Serial
-void tflcam_capture_predict(int ascii);
+#define TFLCAM_SHOOT_ASCII   1
+#define TFLCAM_SHOOT_VECTOR  2
+#define TFLCAM_SHOOT_TIME    4
+#define TFLCAM_SHOOT_PREDICT 8
+// Runs a full shoot (capture, crop, transform, image process, predict) cycle. 
+// Set flags to combination of TFLCAM_SHOOT_XXX for extra output
+void tflcam_shoot(int flags);

@@ -6,19 +6,58 @@
 #include "tflu.h"           // own header
 
 
-#define NUMBER_OF_INPUTS  (28*46)   // todo make dynamic
-#define NUMBER_OF_OUTPUTS 4         // todo make dynamic
-#define TENSOR_ARENA_SIZE (45*1024) // biggest that works // todo: where is all my DRAM?
+static Eloquent::TinyML::TfLite<0,0,TFLU_TENSOR_ARENA_SIZE> tflu_interpreter; // See ALRT in tflu.h. We do not use in or out size
 
 
-static Eloquent::TinyML::TfLite<
-  NUMBER_OF_INPUTS, 
-  NUMBER_OF_OUTPUTS, 
-  TENSOR_ARENA_SIZE
-> tflu_interpreter; // todo: make dynamic
+static char  tflu_classnames[TFLU_MAXCLASSES][TFLU_MAXCLASSNAMELEN];
+static int   tflu_numclasses;
+static float tflu_classpredictions[TFLU_MAXCLASSES];
 
 
-// 
+// Initializes the tflu module
+void tflu_setup() {
+  for( int i=0; i< TFLU_MAXCLASSES; i++ )
+    snprintf(tflu_classnames[i],TFLU_MAXCLASSNAMELEN,"cls%d",i);
+  tflu_numclasses= 0;
+  Serial.printf("tflu: success\n");
+}
+
+
+// Returns the number of classes
+int tflu_get_numclasses() {
+  return tflu_numclasses;
+}
+
+
+// Sets the number of classes (maximum is hardwired to TFLU_MAXCLASSES)
+void tflu_set_numclasses( int num ) {
+  if( num<0 || num>TFLU_MAXCLASSES ) { Serial.printf("ERROR: max number of classes exceeded %d\n",TFLU_MAXCLASSES); return; }
+  tflu_numclasses= num;
+}
+
+
+// Get name for class `ix`, must be 0<=ix<tflu_get_numclasses().
+const char* tflu_get_classname(int ix) {
+  if( ix<0 || ix>tflu_numclasses ) return "<outof range>";
+  return tflu_classnames[ix];
+}
+
+
+// Sets name of class `ix` to `name`. Name length should be less than TFLU_MAXCLASSNAMELEN.
+void tflu_set_classname(int ix, const char * name) {
+  if( ix<0 || ix>TFLU_MAXCLASSES ) { Serial.printf("ERROR: max number of classes exceeded %d\n",TFLU_MAXCLASSES); return; }
+  strncpy(tflu_classnames[ix],name,TFLU_MAXCLASSNAMELEN);
+}
+
+
+// Get prediction for class `ix` of last tflu_predict() call, must be 0<=ix<tflu_get_numclasses().
+const char* tflu_get_classprediction(int ix) {
+  if( ix<0 || ix>tflu_numclasses ) return "<outof range>";
+  return tflu_classnames[ix];
+}
+
+
+// todo: load model
 esp_err_t tflu_load(const uint8_t* model) {
   bool res = tflu_interpreter.begin(model); 
   if( res ) {
@@ -30,16 +69,7 @@ esp_err_t tflu_load(const uint8_t* model) {
 }
 
 
-// Convert inframe[] 0..255 unit8_t  to  outframe[] -1.0..+1.0 float
-static void tfly_norm( uint8_t * inframe, float * outframe, int size ) {
-  for( int i=0; i<size; i++ ) {
-    outframe[i] = 2.0 * inframe[i] / 255.0 - 1.0;
-  }
-}
-
-
 // For a (float) `vector` of size `size`, returns the index of the greatest.
-// todo: check predictClass and probaToClass in EloquentTinyML.h
 static int tflu_index_of_max( float * vector, int size ) {
   float max_val = -FLT_MAX;
   int   max_ix;
@@ -54,26 +84,24 @@ static int tflu_index_of_max( float * vector, int size ) {
 
 
 // Prints a (float) `vector` of size `size` to Serial. Item `index` is highlighted (pass -1 if not needed).
-static void tflu_print( float * vector, int size, int index ) {
+void tflu_print( ) {
+  int index = tflu_index_of_max(tflu_classpredictions, tflu_numclasses);
   Serial.printf("tflu: vector:");
-  for( int ix=0; ix<size; ix++ ) {
+  for( int ix=0; ix<tflu_numclasses; ix++ ) {
     if( ix==index ) 
-      Serial.printf(" [%d:%.4f]",ix,vector[ix]);
+      Serial.printf(" [%d/%s:%.4f]",ix,tflu_classnames[ix],tflu_classpredictions[ix]);
     else 
-      Serial.printf(" %d:%.4f",ix,vector[ix]);
+      Serial.printf(" %d/%s:%.4f",ix,tflu_classnames[ix],tflu_classpredictions[ix]);
   }
   Serial.printf("\n");
 }
 
 
-// The frame buffer in float for TFLu
-static float tflu_frame[TFLCAM_MAXPIXELS];
-
-int tflu_predict( uint8_t * frame, int size, int showall ) {
-  tfly_norm(frame, tflu_frame, size);
-  float output[NUMBER_OF_OUTPUTS];
-  tflu_interpreter.predict( (float*)tflu_frame, output );
-  int index = tflu_index_of_max(output, NUMBER_OF_OUTPUTS);
-  if( showall ) tflu_print(output, NUMBER_OF_OUTPUTS, index );
-  return index; // returns index of best matching class
+// Runs the TFLu predictor on the input `frame` of `size`.
+// Sets the predictions for the classes in `tflu_classpredictions[]` and returns best class
+int tflu_predict( uint8_t * frame, int size ) {
+  if( tflu_numclasses==0 ) { Serial.printf("ERROR: no class names defined\n"); return -1; }
+  tflu_interpreter.predictx( frame, size, tflu_classpredictions, tflu_numclasses);
+  int index = tflu_index_of_max(tflu_classpredictions, tflu_numclasses);
+  return index; 
 }
