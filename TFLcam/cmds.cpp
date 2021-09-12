@@ -17,23 +17,63 @@
 
 #include "esp32-hal-cpu.h" // see C:\Users\maarten\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6\cores\esp32\esp32-hal-cpu.h
 
+const char * cmds_sys_resetreason() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  switch( reason ) {
+    case ESP_RST_UNKNOWN   : return "unknown";
+    case ESP_RST_POWERON   : return "power-on";
+    case ESP_RST_EXT       : return "reset-external-pin";
+    case ESP_RST_SW        : return "reset-by-sw";
+    case ESP_RST_PANIC     : return "exception-or-panic";
+    case ESP_RST_INT_WDT   : return "watchdog-interrupt";
+    case ESP_RST_TASK_WDT  : return "watchdog-task";
+    case ESP_RST_WDT       : return "watchdog-other";
+    case ESP_RST_DEEPSLEEP : return "from-deepsleep";
+    case ESP_RST_BROWNOUT  : return "bownout";
+    case ESP_RST_SDIO      : return "SDIO";
+    default                : return "<should-not-happen>";
+  }
+}
+
+void cmds_sys_clk_show() {
+  Serial.printf( "clk  : %u MHz (xtal %u MHz)\n",getCpuFrequencyMhz(), getXtalFrequencyMhz() );
+}
+
 void cmds_sys_show() {
-  Serial.printf( "clk: %u MHz (xtal %u MHz)\n",getCpuFrequencyMhz(), getXtalFrequencyMhz() );
+  cmds_sys_clk_show();
+  Serial.printf("reset: %s\n",cmds_sys_resetreason() );
+  Serial.printf("chip : model %s (%d cores) rev %d\n",ESP.getChipModel(),ESP.getChipCores(), ESP.getChipRevision() );
+  Serial.printf("ftrs :");
+  esp_chip_info_t info;
+  esp_chip_info(&info);
+  if( info.features & BIT(0) ) Serial.printf(" Embedded-Flash");
+  if( info.features & BIT(1) ) Serial.printf(" 2.4GHz-WiFi");
+  if( info.features & BIT(4) ) Serial.printf(" Bluetooth-LE");
+  if( info.features & BIT(5) ) Serial.printf(" Bluetooth-classic");
+  Serial.printf("\n");
+  Serial.printf( "heap : size %u, free %u\n",ESP.getHeapSize(), ESP.getFreeHeap() );
+  Serial.printf( "psram: size %u, free %u\n",ESP.getPsramSize(), ESP.getFreePsram() );
+  Serial.printf( "bufs : model %u, tensor %u\n", FILE_LOAD_BUFSIZE ,TFLU_TENSOR_ARENA_SIZE );
+  // ESP.getSketchSize(), 
 }
 
 
 // The sys command handler
 static void cmds_sys_main( int argc, char * argv[] ) {
-  if( argc==2 && cmd_isprefix(PSTR("clk"),argv[1])) {
+  if( argc==1 ) {
     cmds_sys_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("clk"),argv[1])) {
+    if( argc==2 ) {
+      cmds_sys_show();
+      return;
+    }
     int clk;
     bool ok = cmd_parse_dec(argv[2],&clk) ;
     if( !ok ) { Serial.printf("ERROR: error in frequency\n"); return; }
     setCpuFrequencyMhz(clk); //  240, 160, 80
-    if( argv[0][0]!='@') cmds_sys_show();
+    if( argv[0][0]!='@') cmds_sys_clk_show();
     return;
   }
   if( argc==2 && cmd_isprefix(PSTR("reboot"),argv[1])) {
@@ -45,6 +85,8 @@ static void cmds_sys_main( int argc, char * argv[] ) {
 
 // Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
 static const char cmds_sys_longhelp[] PROGMEM = 
+  "SYNTAX: sys\n"
+  "- without arguments shows some system info\n"
   "SYNTAX: sys clk <freq>\n"
   "- without arguments shows clock frequency\n"
   "- with argument sets clock frequency\n"
@@ -57,7 +99,7 @@ static const char cmds_sys_longhelp[] PROGMEM =
 
 // Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
 static int cmds_sys_register(void) {
-  return cmd_register(cmds_sys_main, PSTR("sys"), PSTR("system commands (like reboot)"), cmds_sys_longhelp);
+  return cmd_register(cmds_sys_main, PSTR("sys"), PSTR("system info and commands"), cmds_sys_longhelp);
 }
 
 
@@ -109,7 +151,7 @@ static void cmds_version_main( int argc, char * argv[] ) {
     Serial.printf( "app     : %s (%s) %s\n", TFLCAM_LONGNAME, TFLCAM_SHORTNAME, TFLCAM_VERSION);
     if( argv[0][0]!='@') Serial.printf( "library : cmd %s\n", CMD_VERSION);
     if( argv[0][0]!='@') Serial.printf( "library : EloquentTinyML %s\n", ELOQUENT_TINYML_VERSION);
-    if( argv[0][0]!='@') Serial.printf( "runtime : " ARDUINO_ESP32_RELEASE "\n" );
+    if( argv[0][0]!='@') Serial.printf( "runtime : Arduino ESP32 " ARDUINO_ESP32_RELEASE "\n" );
     if( argv[0][0]!='@') Serial.printf( "compiler: " __VERSION__ "\n" );
     if( argv[0][0]!='@') Serial.printf( "arduino : %d\n",ARDUINO );
     if( argv[0][0]!='@') Serial.printf( "compiled: " __DATE__ ", " __TIME__ "\n" );
@@ -139,7 +181,7 @@ static int cmds_mode_train_count;
 
 static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
   if( argc==0 ) {
-    // todo: implement saving the cropped image frame
+    Serial.printf("TODO: not yet implemented\n");
     cmds_mode_train_count++;
     char buf[5]; snprintf(buf,sizeof buf, "%04d",cmds_mode_train_count); cmd_set_streamprompt(buf);
   } else {
@@ -236,7 +278,7 @@ static const char cmds_mode_longhelp[] PROGMEM =
 
 // Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.
 static int cmds_mode_register(void) {
-  return cmd_register(cmds_mode_main, PSTR("mode"), PSTR("access to the modes on the SD card"), cmds_mode_longhelp);
+  return cmd_register(cmds_mode_main, PSTR("mode"), PSTR("sensor mode (single, continuous)"), cmds_mode_longhelp);
 }
 
 
@@ -275,8 +317,9 @@ static void cmds_file_main( int argc, char * argv[] ) {
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("load"),argv[1]) ) { 
-    if( argc!=3 ) { Serial.printf("ERROR: run must have one filename\n"); return; }
-    Serial.printf("TODO: load %s\n",argv[2]);
+    if( argc!=3 ) { Serial.printf("ERROR: load must have one filename\n"); return; }
+    const uint8_t * model = file_load(argv[2]);
+    tflu_set_model( model );
     return;
   }
   Serial.printf("ERROR: unknown sub command (%s) of file\n", argv[1] ); return;

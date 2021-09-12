@@ -10,8 +10,6 @@
 #include "tflu.h"   // TensorFlow interpreter
 
 
-#include "rps32model.h" // todo make dynamic
-
 int     tflcam_mode;
 uint8_t tflcam_buf[TFLCAM_MAXPIXELS];
 
@@ -24,12 +22,29 @@ void tflcam_shoot(int flags ) {
   cam_capture(tflcam_buf, TFLCAM_MAXPIXELS, 100 );
   if( flags & TFLCAM_SHOOT_ASCII ) cam_printframe(tflcam_buf,cam_outwidth(),cam_outheight());
   // Predict
+  uint32_t t0p=millis();
   int ix = tflu_predict( tflcam_buf, cam_outwidth()*cam_outheight() );
+  uint32_t t1p=millis();
   if( flags & TFLCAM_SHOOT_VECTOR ) tflu_print();
   if( flags & TFLCAM_SHOOT_PREDICT ) Serial.printf("predict: %d/%s\n",ix,tflu_get_classname(ix));
   uint32_t t1=millis();
-  if( flags & TFLCAM_SHOOT_TIME ) Serial.printf("time: %lu ms (%.2f FPS)\n", t1-t0, 1000.0/(t1-t0) );
+  if( flags & TFLCAM_SHOOT_TIME ) Serial.printf("time: %u ms, %.2f FPS (prediction %u ms)\n", t1-t0, 1000.0/(t1-t0), t1p-t0p );
 }
+
+
+// Typical sd card has 
+//   boot.cmd
+//   rps.tfl
+// and boot.cmd has contents
+//   // boot.cmd for Rock, paper, scissors
+//   @img crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46
+//   @img trans rotcw
+//   @img proc histeq
+//   @labels none paper rock scissers
+//   file load /rps.tfl // 28x46->4
+// rps.tfl is a TFL flatbuffer that must match
+//   input   28*46
+//   output  4 (none paper rock scissers)
 
 
 void setup() {
@@ -41,16 +56,9 @@ void setup() {
   cmds_setup();
   cam_setup();
   tflu_setup();
-  tflu_load(rps32model_data); // todo: make dynamic
   Serial.print("\ntype 'help' for help\n");
   cmd_begin(); // also prints initial prompt
 
-  // todo: move to boot.cmd
-  cmd_addstr("@img crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46\n");
-  cmd_addstr("@img trans rotcw\n");  
-  cmd_addstr("@img proc histeq\n"); 
-  cmd_addstr("@labels none paper rock scissers\n"); 
-  
   tflcam_mode = TFLCAM_MODE_IDLE;
   file_run("/boot.cmd");
 }
@@ -66,19 +74,12 @@ void loop() {
 
 
 
-
-
-
-
-
-
 // https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
 // todo Disable brownout #include "soc/rtc_cntl_reg.h"         WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-// todo if(psramFound()) config.fb_count = 2; else config.fb_count = 1;
-// todo Remove img trans to make faster
+// todo replace img trans to fixed rot (to make faster/simpler)
 // todo flash light management
 // todo: add mode change (continuous but only print when there is a stable change)
 // todo: implement 'save' for the cropped image frame
 // todo: implement 'rawsave' for the raw image frame
-// todo: where is all my DRAM?
-
+// todo: split cam get_fb and process, so that we can print time in three: fbget, process, predict
+// todo: eloquent as own subclass, not a patch
