@@ -107,11 +107,11 @@ void loop() {
 //   @img crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46
 //   @img trans rotcw
 //   @img proc histeq
-//   @labels none paper rock scissers
+//   @labels none paper rock scissors
 //   file load /rps.tfl // 28x46->4
 // rps.tfl is a TFL flatbuffer that must match
 //   input   28*46
-//   output  4 (none paper rock scissers)
+//   output  4 (none paper rock scissors)
 
 
 
