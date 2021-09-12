@@ -7,6 +7,7 @@
 
 // The commands control the app (and some if its libs)
 #include "TFLcam.h"       // application
+#include "file.h"         // operations on sd card files
 #include "cam.h"          // camera configuration
 
 
@@ -18,7 +19,7 @@ static void cmds_sys_main( int argc, char * argv[] ) {
   if( argc==2 && cmd_isprefix(PSTR("reboot"),argv[1])) {
     ESP.restart();
   }
-  Serial.printf("Error: unknown arguments for sys\n" ); return;
+  Serial.printf("ERROR: unknown arguments for sys\n" ); return;
 }
 
 
@@ -51,7 +52,7 @@ static void cmds_version_main( int argc, char * argv[] ) {
     if( argv[0][0]!='@') Serial.printf( "compiled: " __DATE__ ", " __TIME__ "\n" );
     return;
   }
-  Serial.printf("Error: unknown arguments for version\n" ); return;
+  Serial.printf("ERROR: unknown arguments for version\n" ); return;
 }
 
 
@@ -97,33 +98,33 @@ static void cmds_mode_main( int argc, char * argv[] ) {
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("idle"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("Error: idle does not have argument\n"); return; }
+    if( argc!=2 ) { Serial.printf("ERROR: idle does not have argument\n"); return; }
     tflcam_mode = TFLCAM_MODE_IDLE;
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("once"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("Error: once does not have argument\n"); return; }
+    if( argc!=2 ) { Serial.printf("ERROR: once does not have argument\n"); return; }
     tflcam_capture_predict(0);
     tflcam_mode = TFLCAM_MODE_IDLE;
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("ascii"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("Error: ascii does not have argument\n"); return; }
+    if( argc!=2 ) { Serial.printf("ERROR: ascii does not have argument\n"); return; }
     tflcam_capture_predict(1);
     tflcam_mode = TFLCAM_MODE_IDLE;
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("continuous"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("Error: continuous does not have argument\n"); return; }
+    if( argc!=2 ) { Serial.printf("ERROR: continuous does not have argument\n"); return; }
     tflcam_mode = TFLCAM_MODE_CONTINUOUS;
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("train"),argv[1]) ) { 
-    if( argc!=3 ) { Serial.printf("Error: train must have one directory name\n"); return; }
+    if( argc!=3 ) { Serial.printf("ERROR: train must have one directory name\n"); return; }
     tflcam_mode = TFLCAM_MODE_TRAIN;
     cmds_mode_show();
     Serial.printf("Press CR to save an image; any non-empty input will abort training mode\n");
@@ -132,7 +133,7 @@ static void cmds_mode_main( int argc, char * argv[] ) {
     cmd_set_streamfunc(cmds_mode_streamfunc_train);
     return;
   }
-  Serial.printf("Error: unknown sub command (%s) of mode\n", argv[1] ); return;
+  Serial.printf("ERROR: unknown sub command (%s) of mode\n", argv[1] ); return;
 }
 
 
@@ -164,56 +165,54 @@ static int cmds_mode_register(void) {
 
 // cmds_file ====================================================================================
 
-static void cmds_file_dir() {
-    Serial.printf("TODO: dir\n");
-}
-
-static void cmds_file_show(char *name) {
-    Serial.printf("TODO: show %s\n",name);
-}
-
-static void cmds_file_run(char *name) {
-    Serial.printf("TODO: run %s\n",name);
-}
-
-static void cmds_file_load(char *name) {
-    Serial.printf("TODO: load %s\n",name);
-}
-
 // The file command handler
 static void cmds_file_main( int argc, char * argv[] ) {
   if( argc==1 ) {
-    cmds_file_dir();
+    file_sdprops();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("dir"),argv[1]) ) { 
-    if( argc!=2 ) { Serial.printf("Error: dir does not have argument\n"); return; }
-    cmds_file_dir();
+    if( argc==2 ) { 
+      file_dir("/");
+    } else if( argc==3 ) { 
+      file_dir(argv[2]);
+    } else if( argc==4 ) { 
+      int levels;
+      bool ok = cmd_parse_dec(argv[3],&levels) ;
+      if( !ok ) { Serial.printf("ERROR: error in levels\n"); return; }
+      if( levels<0 ) { Serial.printf("ERROR: levels (%d) must be 0..\n",levels); return; }
+      file_dir(argv[2],levels);
+    } else {
+      Serial.printf("ERROR: unknown arguments for dir\n" ); return;  
+    }
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("show"),argv[1]) ) { 
-    if( argc!=3 ) { Serial.printf("Error: show must have one filename\n"); return; }
-    cmds_file_show(argv[2]);
+    if( argc!=3 ) { Serial.printf("ERROR: show must have one filename\n"); return; }
+    file_show(argv[2]);
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("run"),argv[1]) ) { 
-    if( argc!=3 ) { Serial.printf("Error: run must have one filename\n"); return; }
-    cmds_file_run(argv[2]);
+    if( argc!=3 ) { Serial.printf("ERROR: run must have one filename\n"); return; }
+    file_run(argv[2]);
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("load"),argv[1]) ) { 
-    if( argc!=3 ) { Serial.printf("Error: run must have one filename\n"); return; }
-    cmds_file_load(argv[2]);
+    if( argc!=3 ) { Serial.printf("ERROR: run must have one filename\n"); return; }
+    Serial.printf("TODO: load %s\n",argv[2]);
     return;
   }
-  Serial.printf("Error: unknown sub command (%s) of file\n", argv[1] ); return;
+  Serial.printf("ERROR: unknown sub command (%s) of file\n", argv[1] ); return;
 }
 
 
 // Note cmd_register needs all strigs to be PROGMEM strings. For longhelp we do that manually
 static const char cmds_file_longhelp[] PROGMEM = 
-  "SYNTAX: file [ dir ]\n"
-  "- lists all files\n"
+  "SYNTAX: file\n"
+  "- shows SD card poperties\n"
+  "SYNTAX: file dir [ <name> [ <levels> ] ]\n"
+  "- shows the contents of the directory <name> (default '/')\n"
+  "- <levels> is the number of recursive steps (default 0)\n"
   "SYNTAX: file show <name>\n"
   "- shows the content of file with 'name'\n"
   "SYNTAX: file run <name>\n"
@@ -267,9 +266,15 @@ static void cmds_cam_imgproc_print() {
 }
 
 static void cmds_img_crop_print() {
-  Serial.printf("crop : left %d  top %d  width %d  height %d  xsize %d ysize %d ", cam_crop_left, cam_crop_top, cam_crop_width, cam_crop_height,cam_crop_xsize, cam_crop_ysize);
-  if( cam_crop_width%cam_crop_xsize==0 ) Serial.printf("(poolx %d ",cam_crop_width/cam_crop_xsize); else Serial.printf("(poolx %.2f",cam_crop_width/(float)cam_crop_xsize); 
-  if( cam_crop_height%cam_crop_ysize==0 ) Serial.printf(" pooly %d)\n",cam_crop_height/cam_crop_ysize); else Serial.printf(" pooly %.2f)\n",cam_crop_height/(float)cam_crop_ysize); 
+  Serial.printf("crop : left %d  top %d  width %d  height %d  xsize %d ysize %d", cam_crop_left, cam_crop_top, cam_crop_width, cam_crop_height,cam_crop_xsize, cam_crop_ysize);
+  Serial.print(" (poolx ");
+  if( cam_crop_width%cam_crop_xsize==0 ) Serial.printf("%d",cam_crop_width/cam_crop_xsize); else Serial.printf("%.2f",cam_crop_width/(float)cam_crop_xsize); 
+  Serial.print(" pooly ");
+  if( cam_crop_height%cam_crop_ysize==0 ) Serial.printf("%d",cam_crop_height/cam_crop_ysize); else Serial.printf("%.2f",cam_crop_height/(float)cam_crop_ysize); 
+  Serial.print(")");
+  if( cam_crop_width%cam_crop_xsize!=0 || cam_crop_height%cam_crop_ysize!=0 ) Serial.printf(" [warn: pool float]"); 
+  if( 100*cam_crop_width/cam_crop_xsize != 100*cam_crop_height/cam_crop_ysize )  Serial.printf(" [warn: pool not equal]"); 
+  Serial.print("\n");
 }
 
 static void cmds_img_img_print() {
@@ -303,56 +308,56 @@ static void cmds_img_main( int argc, char * argv[] ) {
     int ix=2;
     while( ix<argc ) {
       if( cmd_isprefix(PSTR("left"),argv[ix]) ) { 
-        if( fleft ) { Serial.printf("Error: left occurs more then once\n"); return; }
+        if( fleft ) { Serial.printf("ERROR: left occurs more then once\n"); return; }
         fleft=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: left needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: left needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&left) ;
-        if( !ok ) { Serial.printf("Error: error in left value\n"); return; }
-        if( left<0 || left>=CAM_CAPTURE_WIDTH ) { Serial.printf("Error: left (%d) must be 0..%d\n",left,CAM_CAPTURE_WIDTH-1); return; }
+        if( !ok ) { Serial.printf("ERROR: error in left value\n"); return; }
+        if( left<0 || left>=CAM_CAPTURE_WIDTH ) { Serial.printf("ERROR: left (%d) must be 0..%d\n",left,CAM_CAPTURE_WIDTH-1); return; }
       } else if( cmd_isprefix(PSTR("top"),argv[ix]) ) {
-        if( ftop ) { Serial.printf("Error: top occurs more then once\n"); return; }
+        if( ftop ) { Serial.printf("ERROR: top occurs more then once\n"); return; }
         ftop=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: top needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: top needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&top) ;
-        if( !ok ) { Serial.printf("Error: error in top value\n"); return; }
-        if( top<0 || top>=CAM_CAPTURE_HEIGHT ) { Serial.printf("Error: top (%d) must be 0..%d\n",top,CAM_CAPTURE_HEIGHT-1); return; }
+        if( !ok ) { Serial.printf("ERROR: error in top value\n"); return; }
+        if( top<0 || top>=CAM_CAPTURE_HEIGHT ) { Serial.printf("ERROR: top (%d) must be 0..%d\n",top,CAM_CAPTURE_HEIGHT-1); return; }
       } else if( cmd_isprefix(PSTR("width"),argv[ix]) ) {
-        if( fwidth ) { Serial.printf("Error: width occurs more then once\n"); return; }
+        if( fwidth ) { Serial.printf("ERROR: width occurs more then once\n"); return; }
         fwidth=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: width needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: width needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&width) ;
-        if( !ok ) { Serial.printf("Error: error in width value\n"); return; }
-        if( width<1 || width>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: width (%d) must be 1..%d\n",width,CAM_CAPTURE_WIDTH); return; }
+        if( !ok ) { Serial.printf("ERROR: error in width value\n"); return; }
+        if( width<1 || width>CAM_CAPTURE_WIDTH ) { Serial.printf("ERROR: width (%d) must be 1..%d\n",width,CAM_CAPTURE_WIDTH); return; }
       } else if( cmd_isprefix(PSTR("height"),argv[ix]) ) {
-        if( fheight ) { Serial.printf("Error: height occurs more then once\n"); return; }
+        if( fheight ) { Serial.printf("ERROR: height occurs more then once\n"); return; }
         fheight=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: height needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: height needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&height) ;
-        if( !ok ) { Serial.printf("Error: error in height value\n"); return; }
-        if( height<1 || height>CAM_CAPTURE_HEIGHT ) { Serial.printf("Error: height (%d) must be 1..%d\n",height,CAM_CAPTURE_HEIGHT); return; }
+        if( !ok ) { Serial.printf("ERROR: error in height value\n"); return; }
+        if( height<1 || height>CAM_CAPTURE_HEIGHT ) { Serial.printf("ERROR: height (%d) must be 1..%d\n",height,CAM_CAPTURE_HEIGHT); return; }
       } else if( cmd_isprefix(PSTR("xsize"),argv[ix]) ) {
-        if( fxsize ) { Serial.printf("Error: xsize occurs more then once\n"); return; }
+        if( fxsize ) { Serial.printf("ERROR: xsize occurs more then once\n"); return; }
         fxsize=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: xsize needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: xsize needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&xsize) ;
-        if( !ok ) { Serial.printf("Error: error in xsize value\n"); return; }
-        if( xsize<1 || xsize>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: xsize (%d) must be 1..%d\n",xsize,CAM_CAPTURE_WIDTH); return; }
+        if( !ok ) { Serial.printf("ERROR: error in xsize value\n"); return; }
+        if( xsize<1 || xsize>CAM_CAPTURE_WIDTH ) { Serial.printf("ERROR: xsize (%d) must be 1..%d\n",xsize,CAM_CAPTURE_WIDTH); return; }
       } else if( cmd_isprefix(PSTR("ysize"),argv[ix]) ) {
-        if( fysize ) { Serial.printf("Error: ysize occurs more then once\n"); return; }
+        if( fysize ) { Serial.printf("ERROR: ysize occurs more then once\n"); return; }
         fysize=1; ix++;
-        if( ix>=argc ) { Serial.printf("Error: ysize needs a value\n"); return; }
+        if( ix>=argc ) { Serial.printf("ERROR: ysize needs a value\n"); return; }
         ok = cmd_parse_dec(argv[ix],&ysize) ;
-        if( !ok ) { Serial.printf("Error: error in ysize value\n"); return; }
-        if( ysize<1 || ysize>CAM_CAPTURE_HEIGHT ) { Serial.printf("Error: ysize (%d) must be 1..%d\n",ysize,CAM_CAPTURE_HEIGHT); return; }
+        if( !ok ) { Serial.printf("ERROR: error in ysize value\n"); return; }
+        if( ysize<1 || ysize>CAM_CAPTURE_HEIGHT ) { Serial.printf("ERROR: ysize (%d) must be 1..%d\n",ysize,CAM_CAPTURE_HEIGHT); return; }
       } else {
-        Serial.printf("Error: crop has unknown arg (%s)\n", argv[ix]); return;
+        Serial.printf("ERROR: crop has unknown arg (%s)\n", argv[ix]); return;
       }
       ix++;
     }
     // extra tests
-    if( left+width>CAM_CAPTURE_WIDTH ) { Serial.printf("Error: left+width (%d+%d) must not exceed cam width (%d)\n",left,width,CAM_CAPTURE_WIDTH); return; }
-    if( top+height>CAM_CAPTURE_HEIGHT) { Serial.printf("Error: top+height (%d+%d) must not exceed cam height (%d)\n",top,height,CAM_CAPTURE_HEIGHT); return; }
-    if( xsize*ysize>TFLCAM_MAXPIXELS ) { Serial.printf("Error: resulting size %d*%d exceeds TFL buffer size %d\n",xsize,ysize,TFLCAM_MAXPIXELS); return; }
+    if( left+width>CAM_CAPTURE_WIDTH ) { Serial.printf("ERROR: left+width (%d+%d) must not exceed cam width (%d)\n",left,width,CAM_CAPTURE_WIDTH); return; }
+    if( top+height>CAM_CAPTURE_HEIGHT) { Serial.printf("ERROR: top+height (%d+%d) must not exceed cam height (%d)\n",top,height,CAM_CAPTURE_HEIGHT); return; }
+    if( xsize*ysize>TFLCAM_MAXPIXELS ) { Serial.printf("ERROR: resulting size %d*%d exceeds TFL buffer size %d\n",xsize,ysize,TFLCAM_MAXPIXELS); return; }
     // all ok
     cam_crop_left = left;
     cam_crop_top = top;
@@ -380,16 +385,16 @@ static void cmds_img_main( int argc, char * argv[] ) {
     int ix=2;
     while( ix<argc ) {
       if( cmd_isprefix(PSTR("vflip"),argv[ix]) ) {
-        if( vflip==1 ) { Serial.printf("Error: vflip occurs more then once\n"); return; }
+        if( vflip==1 ) { Serial.printf("ERROR: vflip occurs more then once\n"); return; }
         vflip=1;
       } else if( cmd_isprefix(PSTR("hmirror"),argv[ix]) ) {
-        if( hmirror==1 ) { Serial.printf("Error: hmirror occurs more then once\n"); return; }
+        if( hmirror==1 ) { Serial.printf("ERROR: hmirror occurs more then once\n"); return; }
         hmirror=1;
       } else if( cmd_isprefix(PSTR("rotcw"),argv[ix]) ) {
-        if( rotcw==1 ) { Serial.printf("Error: rotcw occurs more then once\n"); return; }
+        if( rotcw==1 ) { Serial.printf("ERROR: rotcw occurs more then once\n"); return; }
         rotcw=1;
       } else {
-        Serial.printf("Error: unknown transformation (%s)\n", argv[ix]); return;
+        Serial.printf("ERROR: unknown transformation (%s)\n", argv[ix]); return;
       }
       ix++;      
     }
@@ -412,10 +417,10 @@ static void cmds_img_main( int argc, char * argv[] ) {
     int ix=2;
     while( ix<argc ) {
       if( cmd_isprefix(PSTR("histeq"),argv[ix]) ) {
-        if( histeq==1 ) { Serial.printf("Error: histeq occurs more then once\n"); return; }
+        if( histeq==1 ) { Serial.printf("ERROR: histeq occurs more then once\n"); return; }
         histeq=1;
       } else {
-        Serial.printf("Error: unknown image processing (%s)\n", argv[ix]); return;
+        Serial.printf("ERROR: unknown image processing (%s)\n", argv[ix]); return;
       }
       ix++;      
     }
@@ -424,7 +429,7 @@ static void cmds_img_main( int argc, char * argv[] ) {
     return;
   }
   // subcommand <error> --------------------------------
-  Serial.printf("Error: unknown sub command (%s) of img\n", argv[1] ); return;
+  Serial.printf("ERROR: unknown sub command (%s) of img\n", argv[1] ); return;
 }
 
 

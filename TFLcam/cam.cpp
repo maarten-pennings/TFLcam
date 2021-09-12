@@ -296,22 +296,18 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize, int fled ) { // TODO fled m
   }
   
   // Crop and transform
-  int count = (cam_crop_width/cam_crop_xsize)*(cam_crop_height/cam_crop_ysize);
-  Serial.printf("count %d\n",count);
   for( int yp=0; yp<cam_crop_ysize; yp++ ) {
     for( int xp=0; xp<cam_crop_xsize; xp++ ) {
       // (xp,yp) is the coordinate of the block of input pixels that is averaged
       int sum=0;
-      Serial.printf("pool(%d,%d)",xp,yp);
+      int count = 0;
       for( int yi=cam_crop_top+yp*cam_crop_height/cam_crop_ysize; yi<cam_crop_top+(yp+1)*cam_crop_height/cam_crop_ysize; yi++ ) {
         for( int xi=cam_crop_left+xp*cam_crop_width/cam_crop_xsize; xi<cam_crop_left+(xp+1)*cam_crop_width/cam_crop_xsize; xi++ ) {
           // (xi,yi) is the coordinate of the pixel in the averaging block
-          Serial.printf(" %d,%d",xi,yi);
           sum+= fb->buf[xi+CAM_CAPTURE_WIDTH*yi]; 
+          count++;
         }
-        Serial.printf(" |");
       }
-      Serial.printf("\n");
       // transform
       int xo = xp;
       int yo = yp;
