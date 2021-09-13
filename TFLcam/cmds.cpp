@@ -3,14 +3,14 @@
 #include "core_version.h"   // ARDUINO_ESP32_GIT_VER, ARDUINO_ESP32_GIT_DESC, ARDUINO_ESP32_RELEASE
 #include <EloquentTinyML.h> // For version of TensorFlow lite for ESP32, from https://github.com/eloquentarduino/EloquentTinyML
 
-#include "cmd.h"          // command interpreter
-#include "cmds.h"         // own interface
+#include "cmd.h"            // command interpreter
+#include "cmds.h"           // own interface
 
 // The commands control the app (and some if its libs)
-#include "TFLcam.h"       // application
-#include "file.h"         // operations on sd card files
-#include "cam.h"          // camera configuration
-#include "tflu.h"         // TensorFlow lite configuration (of classes)
+#include "TFLcam.h"         // application
+#include "file.h"           // operations on sd card files
+#include "cam.h"            // camera configuration
+#include "tflu.h"           // TensorFlow lite configuration (of classes)
 
 
 // cmds_sys =====================================================================================
@@ -146,12 +146,13 @@ static int cmds_labels_register(void) {
 
 
 static void cmds_fled_show() {
+  int m = tflcam_fledmode_get();
   Serial.printf("fled: ");
-  if( cam_fled_get_mode()==CAM_FLED_MODE_OFF ) Serial.printf("off");
-  if( cam_fled_get_mode()==CAM_FLED_MODE_AUTO ) Serial.printf("auto");
-  if( cam_fled_get_mode()==CAM_FLED_MODE_PERMANENT ) Serial.printf("permanent");
-  Serial.printf(" (duty %d)",cam_fled_get_duty());
-  if( cam_fled_get_duty()==0 ) Serial.printf(" [warn: duty 0 instead of mode off]"); 
+  if( m==TFLCAM_FLEDMODE_OFF ) Serial.printf("off");
+  if( m==TFLCAM_FLEDMODE_AUTO ) Serial.printf("auto");
+  if( m==TFLCAM_FLEDMODE_PERMANENT ) Serial.printf("permanent");
+  Serial.printf(" (duty %d)",tflcam_fledmode_get_duty());
+  if( tflcam_fledmode_get_duty()==0 ) Serial.printf(" [warn: duty 0 instead of mode off]"); 
   Serial.printf("\n");
 }
 
@@ -161,23 +162,23 @@ static void cmds_fled_main( int argc, char * argv[] ) {
     cmds_fled_show();
     return;
   }
-  int mode;
-  int duty;
+  int mode = tflcam_fledmode_get();
+  int duty = tflcam_fledmode_get_duty();
   int fmode=0;
   int fduty=0;
   int ix=1;
   while( ix<argc ) {
     if( cmd_isprefix(PSTR("off"),argv[ix]) ) {
       if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
-      mode=CAM_FLED_MODE_OFF;
+      mode=TFLCAM_FLEDMODE_OFF;
       fmode=1;
     } else if( cmd_isprefix(PSTR("auto"),argv[ix]) ) {
       if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
-      mode=CAM_FLED_MODE_AUTO;
+      mode=TFLCAM_FLEDMODE_AUTO;
       fmode=1;
     } else if( cmd_isprefix(PSTR("permanent"),argv[ix]) ) {
       if( fmode==1 ) { Serial.printf("ERROR: mode occurs more then once\n"); return; }
-      mode=CAM_FLED_MODE_PERMANENT;
+      mode=TFLCAM_FLEDMODE_PERMANENT;
       fmode=1;
     } else {
       bool ok = cmd_parse_dec(argv[ix],&duty) ;
@@ -188,8 +189,7 @@ static void cmds_fled_main( int argc, char * argv[] ) {
     }
     ix++;      
   }
-  if( fmode ) cam_fled_set_mode(mode);
-  if( fduty ) cam_fled_set_duty(duty);
+  tflcam_fledmode_set(mode,duty);
   if( argv[0][0]!='@') cmds_fled_show();
 }
 
@@ -260,9 +260,10 @@ static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
 }
 
 static void cmds_mode_show() {
-  if( tflcam_mode==TFLCAM_MODE_IDLE ) Serial.printf("mode: idle\n");
-  else if( tflcam_mode==TFLCAM_MODE_CONTINUOUS ) Serial.printf("mode: continuous (stable %d)\n",tflcam_mode_sub);
-  else if( tflcam_mode==TFLCAM_MODE_TRAIN ) Serial.printf("mode: train\n");
+  int m = tflcam_get_opmode();
+  if( m==TFLCAM_OPMODE_IDLE ) Serial.printf("mode: idle\n");
+  else if( m==TFLCAM_OPMODE_CONTINUOUS ) Serial.printf("mode: continuous (stable %d)\n",tflcam_fledmode_get_count());
+  else if( m==TFLCAM_OPMODE_TRAIN ) Serial.printf("mode: train\n");
   else Serial.printf("mode: <unknown>\n");
 }
 
@@ -274,70 +275,69 @@ static void cmds_mode_main( int argc, char * argv[] ) {
   }
   if( argc>=2 && cmd_isprefix(PSTR("idle"),argv[1]) ) { 
     if( argc!=2 ) { Serial.printf("ERROR: idle does not have argument\n"); return; }
-    tflcam_mode = TFLCAM_MODE_IDLE;
+    tflcam_set_opmode(TFLCAM_OPMODE_IDLE);
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("single"),argv[1]) ) { 
-    char * savename=0;
-    int fall=0;
+    char * rsave=0;
+    char * csave=0;
     int fimage=0;
     int fvector=0;
     int ftime=0;
-    int fsave=0;
+    int frsave=0;
+    int fcsave=0;
     int ix=2;
     while( ix<argc ) {
-      if( cmd_isprefix(PSTR("all"),argv[ix]) ) {
-        if( fall==1 ) { Serial.printf("ERROR: all occurs more then once\n"); return; }
-        fall=1;
-      } else if( cmd_isprefix(PSTR("image"),argv[ix]) ) {
+      if( cmd_isprefix(PSTR("image"),argv[ix]) ) {
         if( fimage==1 ) { Serial.printf("ERROR: image occurs more then once\n"); return; }
-        if( fall==1 ) { Serial.printf("ERROR: image occurs with all\n"); return; }
         fimage=1;
       } else if( cmd_isprefix(PSTR("vector"),argv[ix]) ) {
         if( fvector==1 ) { Serial.printf("ERROR: vector occurs more then once\n"); return; }
-        if( fall==1 ) { Serial.printf("ERROR: vector occurs with all\n"); return; }
         fvector=1;
       } else if( cmd_isprefix(PSTR("time"),argv[ix]) ) {
         if( ftime==1 ) { Serial.printf("ERROR: time occurs more then once\n"); return; }
-        if( fall==1 ) { Serial.printf("ERROR: time occurs with all\n"); return; }
         ftime=1;
-      } else if( cmd_isprefix(PSTR("save"),argv[ix]) ) {
-        if( fsave==1 ) { Serial.printf("ERROR: save occurs more then once\n"); return; }
-        fsave=1;
+      } else if( cmd_isprefix(PSTR("rsave"),argv[ix]) ) {
+        if( frsave==1 ) { Serial.printf("ERROR: rsave occurs more then once\n"); return; }
+        frsave=1;
         ix++;
-        if( ix>=argc ) { Serial.printf("ERROR: save needs a filename\n"); return; }
-        savename = argv[ix];
+        if( ix>=argc ) { Serial.printf("ERROR: rsave needs a filename\n"); return; }
+        rsave = argv[ix];
+      } else if( cmd_isprefix(PSTR("csave"),argv[ix]) ) {
+        if( fcsave==1 ) { Serial.printf("ERROR: csave occurs more then once\n"); return; }
+        fcsave=1;
+        ix++;
+        if( ix>=argc ) { Serial.printf("ERROR: csave needs a filename\n"); return; }
+        csave = argv[ix];
       } else {
         Serial.printf("ERROR: unknown flag (%s)\n", argv[ix]); return;
       }
       ix++;      
     }
-    int flags = fall*TFLCAM_SHOOT_ALL | fimage*TFLCAM_SHOOT_IMAGE | fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
-    tflcam_shoot( flags, savename );
-    if( tflcam_mode != TFLCAM_MODE_IDLE ) { 
-      tflcam_mode = TFLCAM_MODE_IDLE;
+    int flags = fimage*TFLCAM_SHOOT_IMAGE | fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
+    tflcam_shoot( flags, rsave, csave );
+    if( tflcam_get_opmode() != TFLCAM_OPMODE_IDLE ) { 
+      tflcam_set_opmode(TFLCAM_OPMODE_IDLE);
       cmds_mode_show();
     }
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("continuous"),argv[1]) ) { 
-    int submode=0; // default: report all, not changes
+    int count=0; // default: report all, not changes
     if( argc>2 ) { 
-      bool ok = cmd_parse_dec(argv[2],&submode);
-      if( !ok ) { Serial.printf("ERROR: error in continuous <num>\n"); return; }
-      if( submode<1 ) { Serial.printf("ERROR: continuous <num> (%d) must be 1..\n",submode); return; }
+      bool ok = cmd_parse_dec(argv[2],&count);
+      if( !ok ) { Serial.printf("ERROR: error in continuous <count>\n"); return; }
+      if( count<1 ) { Serial.printf("ERROR: continuous <count> (%d) must be 1..\n",count); return; }
       if( argc>3 ) { Serial.printf("ERROR: unexpected continuous argument '%s'\n", argv[3]); return; }
     }
-    tflcam_mode = TFLCAM_MODE_CONTINUOUS;
-    tflcam_mode_sub = submode;
-    tflcam_reset_predictions_reporting( );
+    tflcam_set_opmode(TFLCAM_OPMODE_CONTINUOUS,count);
     cmds_mode_show();
     return;
   }
   if( argc>=2 && cmd_isprefix(PSTR("train"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: train must have one directory name\n"); return; }
-    tflcam_mode = TFLCAM_MODE_TRAIN;
+    tflcam_set_opmode(TFLCAM_OPMODE_TRAIN);
     cmds_mode_show();
     Serial.printf("Press CR to save an image; any non-empty input will abort training mode\n");
     cmds_mode_train_count=0;
@@ -355,17 +355,18 @@ static const char cmds_mode_longhelp[] PROGMEM =
   "- shows active mode (never shows single)\n"
   "SYNTAX: mode idle\n"
   "- switch camera off, no TensorFlow predictions\n"
-  "SYNTAX: mode single ( all | image | vector | time | save <name> )...\n"
+  "SYNTAX: mode single ( image | vector | time | rsave <name> | csave <name> )...\n"
   "- takes a single shot, prints prediction, goes to idle mode\n"
   "- 'image' also outputs ASCII rendering of the image\n"
   "- 'vector' also outputs the probabilities of all classes\n"
   "- 'time' also outputs elapsed time\n"
-  "- 'all' is a shorthand for 'image vector time'\n"
-  "- 'save' saves image on sd card under <name> (suggested extension: .pgm)\n"
-  "SYNTAX: mode continuous [ <num> ]\n"
+  "- 'rsave' saves raw (camera) image on sd card under <name>\n"
+  "- 'csave' saves cropped image on sd card under <name>\n"
+  "- suggested extension for file <name> is .pgm (portable gray map)\n"
+  "SYNTAX: mode continuous [ <count> ]\n"
   "- takes a shot, predicts, and loops\n"
-  "- without <num> prints every predictions\n"
-  "- with <num>, only prints if prdecition changes, and is stable for <num> loops\n"
+  "- without <count> prints every predictions\n"
+  "- with <count>, prints if prediction changed, and stable for <count> loops\n"
   "- typically stopped with command 'mode idle'\n"
   "SYNTAX: mode train <dir>\n"
   "- goes in training mode: after each CR an image is saved in <dir>\n"
@@ -418,7 +419,8 @@ static void cmds_file_main( int argc, char * argv[] ) {
   if( argc>=2 && cmd_isprefix(PSTR("load"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: load must have one filename\n"); return; }
     const uint8_t * model = file_load(argv[2]);
-    tflu_set_model( model );
+    esp_err_t res = tflu_set_model( model );
+    if( argv[0][0]!='@') if( res==ESP_OK ) Serial.printf("model '%s' loaded\n", argv[2]);
     return;
   }
   Serial.printf("ERROR: unknown sub command (%s) of file\n", argv[1] ); return;
@@ -441,6 +443,8 @@ static const char cmds_file_longhelp[] PROGMEM =
   "NOTES:\n"
   "- supports subdirectories (separated with '/'), always address from root\n"
   "- script '/boot.cmd' will automatically be run on startup\n"
+  "NOTES:\n"
+  "- supports @-prefix to suppress output\n"
 ;
 
 // Note cmd_register needs all strings to be PROGMEM strings. For the short string we do that inline with PSTR.

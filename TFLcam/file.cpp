@@ -125,7 +125,7 @@ const uint8_t * file_load(const char * filepath) {
 
 // Writes the imag `img` (resolution `width` by `height`) to file `filepath`.
 // `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
-esp_err_t file_imgwrite(const char * filepath, uint8_t * img, int width, int height) {
+esp_err_t file_imgwrite(const char * filepath, const uint8_t * img, int width, int height) {
   File file = SD_MMC.open(filepath, FILE_WRITE);
   if( file.isDirectory() ){ Serial.printf("ERROR: is a directory\n"); return 0; }
   if( !file ) { Serial.printf("ERROR: could not open '%s' (root slash missing?)\n", filepath); return ESP_FAIL; }
@@ -140,7 +140,7 @@ esp_err_t file_imgwrite(const char * filepath, uint8_t * img, int width, int hei
   for( int y=0; y<height; y++ ) {
     int count=0;
     for( int x=0; x<width; x++ ) {
-      ok &= 0<file.printf("%3d ",img[x+y*width]);
+      ok &= 0<file.printf(" %3d",img[x+y*width]);
       count+=4;
       if( count+4>70 ) { ok &= 0<file.printf("\n"); count=0; }
     }

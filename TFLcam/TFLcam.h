@@ -1,7 +1,7 @@
 // TFLcam.h - interface to TensorFlow Lite camera application
 
 // Application version
-#define TFLCAM_VERSION "0.8.0"
+#define TFLCAM_VERSION "0.9.0"
 #define TFLCAM_SHORTNAME "TFLcam"
 #define TFLCAM_LONGNAME "TensorFlow Lite camera"
 #define TFLCAM_BANNER "\n\n"\
@@ -18,26 +18,39 @@
 #define TFLCAM_MAXPIXELS  10000
 
 
-// Application mode (changed by the mode command)
-#define TFLCAM_MODE_IDLE         1
-#define TFLCAM_MODE_CONTINUOUS   2
-#define TFLCAM_MODE_TRAIN        3
-extern int tflcam_mode;
+// Operation mode (changed by the mode command)
+#define TFLCAM_OPMODE_IDLE         11
+#define TFLCAM_OPMODE_TRAIN        12
+#define TFLCAM_OPMODE_CONTINUOUS   13
+// `count` is only used in continous:
+//  =0: print every prediction
+//  >0: print prediction only if it is different from previous print, and stable for `count` predictions
+// Sets the operation mode (when to shoot)
+void tflcam_set_opmode( int opmode, int count=0 );
+// Returns the opmode set with tflcam_set_opmode()
+int tflcam_get_opmode( );
+// Returns the count of the opmode
+int tflcam_fledmode_get_count( );
 
-// Only used in continous:
-//  =0: report every prediction
-//  >0: report prediction if is id different from previous report, and stable for tflcam_mode_sub predictions
-extern int tflcam_mode_sub;
 
-#define TFLCAM_SHOOT_ALL     (1|2|4)
-#define TFLCAM_SHOOT_NONE    0
+// Flash LED mode (changed by the fled command)
+#define TFLCAM_FLEDMODE_OFF        21 // Flash LED always off - cam_fled_set_mode()
+#define TFLCAM_FLEDMODE_AUTO       22 // Flash LED automatically on during shots
+#define TFLCAM_FLEDMODE_PERMANENT  23 // Flash LED permanently on
+// Set the mode of the flash LED and the duty cycle (dark=0..100=bright)
+void tflcam_fledmode_set( int fledmode, int duty );
+// Get the mode of the flash LED
+int tflcam_fledmode_get( );
+// The brightness of the flash LED when it is used (auto or permanently)
+int tflcam_fledmode_get_duty( );
+
+
+// Activating the sensor for one reading. called by loop() or by a 'mode single' command.
 #define TFLCAM_SHOOT_IMAGE   1
 #define TFLCAM_SHOOT_VECTOR  2
 #define TFLCAM_SHOOT_TIME    4
-// Runs a full shoot (capture, crop, transform, image process, report prediction) cycle 
+// Runs a full shoot (capture, crop, prediction, report) cycle 
 // Pass a combination of TFLCAM_SHOOT_XXX flags for extra output.
-// If savename!=0, the image is saved under `savename` on SD card.
-void tflcam_shoot(int flags, const char * savename=0 );
-
-// Reset the predictions reporting history (needed when starting continuous mode)
-void tflcam_reset_predictions_reporting( );
+// If filename_raw!=0, the raw camera image is saved under `filename_raw` on SD card.
+// If filename_crop!=0, the cropped image (for training inference) is saved under `filename_crop` on SD card.
+void tflcam_shoot(int flags=0, const char * filename_raw=0, const char * filename_crop=0 );

@@ -38,4 +38,4 @@ const uint8_t * file_load(const char * filepath);
 
 // Writes the imag `img` (resolution `width` by `height`) to file `filepath`.
 // `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
-esp_err_t file_imgwrite(const char * filepath, uint8_t * img, int width, int height);
+esp_err_t file_imgwrite(const char * filepath, const uint8_t * img, int width, int height);

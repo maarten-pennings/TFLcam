@@ -10,65 +10,160 @@
 #include "tflu.h"   // TensorFlow interpreter
 
 
-int     tflcam_mode;
-int     tflcam_mode_sub;
-uint8_t tflcam_buf[TFLCAM_MAXPIXELS];
 
-
+// prediction printing history (feature: print when changed and stable)
 static int tflcam_ix_prev;       // The previous classification (ix is the current classification)
-static int tflcam_ix_reported;   // The last reported classification
+static int tflcam_ix_printed;    // The last printed classification
 static int tflcam_ix_count_same; // The count of classifications equal to the current one
-// Reset the predictions reporting history (needed when starting continuous mode)
-void tflcam_reset_predictions_reporting( ) {
-  tflcam_ix_prev = -1;
-  tflcam_ix_reported = -1;
+
+
+// Mode management ===========================================================
+
+
+// The operation mode of the application; will be written by the 'mode' command
+static int tflcam_opmode;
+static int tflcam_opmode_count;
+
+// The flash LED mode of the application; will be written by the 'fled' command
+static int tflcam_fledmode;
+static int tflcam_fledmode_duty;
+
+// Update the flash LED when fledmode or opmode changes
+static void tflcam_fled_update() {
+  if( tflcam_fledmode==TFLCAM_FLEDMODE_PERMANENT ) {
+    cam_fled_set(tflcam_fledmode_duty);
+  } else if( tflcam_fledmode==TFLCAM_FLEDMODE_OFF ) {
+    cam_fled_set(0);
+  } else /*TFLCAM_FLEDMODE_AUTO*/ if( tflcam_opmode==TFLCAM_OPMODE_CONTINUOUS ) {
+    cam_fled_set(tflcam_fledmode_duty); // no pulsing during continuous opmode
+  } else {
+    cam_fled_set(0);
+  }
 }
 
 
-// Runs a full shoot (capture, crop, transform, image process, report prediction) cycle 
+// Operation mode UI ==========================================================
+
+
+// Sets the operation mode (when to shoot)
+void tflcam_set_opmode( int opmode, int count ) {
+  if( opmode==TFLCAM_OPMODE_IDLE || opmode==TFLCAM_OPMODE_CONTINUOUS || opmode==TFLCAM_OPMODE_TRAIN ) {
+    if( count<0 ) count=0;
+    // record new mode
+    tflcam_opmode = opmode;
+    tflcam_opmode_count = count;
+    // reset print history
+    tflcam_ix_prev = -1;
+    tflcam_ix_printed = -1;
+    tflcam_fled_update();
+  }
+}
+
+// Returns the opmode set with tflcam_set_opmode() - count is not available
+int tflcam_get_opmode( ) {
+  return tflcam_opmode;
+}
+
+// Returns the count of the opmode
+int tflcam_fledmode_get_count( ) {
+  return tflcam_opmode_count;
+}
+
+// Flash LED mode UI ===========================================================
+
+
+// Set the mode of the flash LED and the duty cycle (dark=0..100=bright)
+void tflcam_fledmode_set( int fledmode, int duty ) {
+  if( fledmode==TFLCAM_FLEDMODE_OFF || fledmode==TFLCAM_FLEDMODE_AUTO || fledmode==TFLCAM_FLEDMODE_PERMANENT ) {
+    tflcam_fledmode = fledmode;
+    tflcam_fledmode_duty = duty; 
+    tflcam_fled_update();
+  }
+}
+
+// Get the mode of the flash LED
+int tflcam_fledmode_get( ) {
+  return tflcam_fledmode;
+}
+
+// The brightness of the flash LED when it is used (auto or permanently)
+int tflcam_fledmode_get_duty( ) {
+  return tflcam_fledmode_duty;
+}
+
+
+// Main application =============================================================
+
+
+// Runs a full shoot (capture, crop, prediction, report) cycle 
 // Pass a combination of TFLCAM_SHOOT_XXX flags for extra output.
-// If savename!=0, the image is saved under `savename` on SD card.
-void tflcam_shoot(int flags, const char * savename ) {
-  uint32_t t0=millis();
+// If filename_raw!=0, the raw camera image is saved under `filename_raw` on SD card.
+// If filename_crop!=0, the cropped image (for training inference) is saved under `filename_crop` on SD card.
+static uint8_t tflcam_buf[TFLCAM_MAXPIXELS]; 
+void tflcam_shoot(int flags, const char * filename_raw, const char * filename_crop ) {
+  // Indented to show timing brackets
+  uint32_t t0_all=millis();
   
-  // Capture/crop/transform/image process
-  cam_capture(tflcam_buf, TFLCAM_MAXPIXELS );
-
-  // Output framebuffer
-  if( flags & TFLCAM_SHOOT_IMAGE ) cam_printframe(tflcam_buf,cam_outwidth(),cam_outheight());
-  if( savename  ) {
-    esp_err_t err= file_imgwrite(savename, tflcam_buf, cam_outwidth(), cam_outheight());
-    Serial.printf("save: %s %s\n",savename, err==ESP_OK?"success":"FAIL");
+    // Capture with flash LED control
+    uint32_t t0_cap=millis();
+      if( tflcam_fledmode==TFLCAM_FLEDMODE_AUTO && tflcam_opmode!=TFLCAM_OPMODE_CONTINUOUS ) cam_fled_set(tflcam_fledmode_duty);
+      const uint8_t * cambuf = cam_capture();
+      if( tflcam_fledmode==TFLCAM_FLEDMODE_AUTO && tflcam_opmode!=TFLCAM_OPMODE_CONTINUOUS ) cam_fled_set(0);
+      if( cambuf==0 ) { Serial.printf("ERROR: aborted"); return; }
+    uint32_t t1_cap=millis();
+  
+    // Crop (includes transform and imageprocess)
+    uint32_t t0_crop=millis();
+      cam_crop(cambuf, tflcam_buf, TFLCAM_MAXPIXELS );
+    uint32_t t1_crop=millis();
+  
+    // Predict
+    uint32_t t0_pred=millis();
+      int ix = tflu_predict( tflcam_buf, cam_outwidth()*cam_outheight() );
+    uint32_t t1_pred=millis();
+  
+    // Output 
+    uint32_t t0_out=millis();
+      // 1. Save raw frame
+      if( filename_raw  ) {
+        esp_err_t err= file_imgwrite(filename_raw, cambuf, CAM_CAPTURE_WIDTH, CAM_CAPTURE_HEIGHT );
+        Serial.printf("save: raw frame %s %s\n",filename_raw, err==ESP_OK?"success":"FAIL");
+      }
+      // 2. Save cropped frame
+      if( filename_crop  ) {
+        esp_err_t err= file_imgwrite(filename_crop, tflcam_buf, cam_outwidth(), cam_outheight());
+        Serial.printf("save: cropped frame %s %s\n",filename_crop, err==ESP_OK?"success":"FAIL");
+      }
+      // 3. Print cropped frame
+      if( flags & TFLCAM_SHOOT_IMAGE ) cam_printframe(tflcam_buf,cam_outwidth(),cam_outheight());
+      // 4. Print prediction vector
+      if( flags & TFLCAM_SHOOT_VECTOR ) tflu_print();
+      // 5. Print prediction class
+      bool fprint_prediction = true; // in principle yes, except when we are in the special submode of continuous
+      if( tflcam_opmode==TFLCAM_OPMODE_CONTINUOUS && tflcam_opmode_count>0 ) {
+        // Record stability, e.g. the amount of equal predictions in sequence (in tflcam_ix_count_same)
+        if( ix!=tflcam_ix_prev ) {
+          tflcam_ix_count_same = 1;
+        } else {
+          if( tflcam_ix_count_same<INT_MAX) tflcam_ix_count_same += 1; // increment with clipping
+        }
+        tflcam_ix_prev = ix;
+        // Report if stable (and different from previous report)
+        if( tflcam_ix_count_same>=tflcam_opmode_count && ix!=tflcam_ix_printed ) {
+          tflcam_ix_printed = ix;
+          fprint_prediction = true;
+        } else {
+          fprint_prediction = false;      
+        }
+      }
+      if( fprint_prediction ) Serial.printf("predict: %d/%s\n",ix,tflu_get_classname(ix));
+    uint32_t t1_out=millis();
+  
+  uint32_t t1_all=millis();
+  if( flags & TFLCAM_SHOOT_TIME ) {
+    Serial.printf( "time: %.2f FPS, %u ms = ", 1000.0/(t1_all-t0_all), t1_all-t0_all );
+    Serial.printf( "%u (capture) + %u (crop) + %u (predict) + %u (output)\n", t1_cap-t0_cap, t1_crop-t0_crop, t1_pred-t0_pred, t1_out-t0_out );
   }
-  
-  // Predict
-  uint32_t t0p=millis();
-  int ix = tflu_predict( tflcam_buf, cam_outwidth()*cam_outheight() );
-  uint32_t t1p=millis();
-  if( flags & TFLCAM_SHOOT_VECTOR ) tflu_print();
-
-  // Print prediction
-  bool freport_prediction = true; // in principle yes, except when we are in teh special submode of continuous
-  if( tflcam_mode==TFLCAM_MODE_CONTINUOUS && tflcam_mode_sub>0 ) {\
-    // Record stability, e.g. the amount of equal predictions in sequence (in tflcam_ix_count_same)
-    if( ix!=tflcam_ix_prev ) {
-      tflcam_ix_count_same = 1;
-    } else {
-      if( tflcam_ix_count_same<INT_MAX) tflcam_ix_count_same += 1; // increment with clipping
-    }
-    tflcam_ix_prev = ix;
-    // Report if stable (and different from previous report)
-    if( tflcam_ix_count_same>=tflcam_mode_sub && ix!=tflcam_ix_reported ) {
-      tflcam_ix_reported = ix;
-      freport_prediction = true;
-    } else {
-      freport_prediction = false;      
-    }
-  }
-  if( freport_prediction ) Serial.printf("predict: %d/%s\n",ix,tflu_get_classname(ix));
-  
-  uint32_t t1=millis();
-  if( flags & TFLCAM_SHOOT_TIME ) Serial.printf("time: %u ms, %.2f FPS (prediction %u ms)\n", t1-t0, 1000.0/(t1-t0), t1p-t0p );
 }
 
 
@@ -85,8 +180,13 @@ void setup() {
   Serial.print("\ntype 'help' for help\n");
   cmd_begin(); // also prints initial prompt
 
-  tflcam_mode = TFLCAM_MODE_IDLE;
-  file_run("/boot.cmd");
+  tflcam_opmode = TFLCAM_OPMODE_IDLE;
+  tflcam_opmode_count = 0; // don't care
+  tflcam_fledmode = TFLCAM_FLEDMODE_AUTO;
+  tflcam_fledmode_duty = 50;
+  tflcam_fled_update();
+  
+  cmd_addstr("file run /boot.cmd\n");
 }
 
 
@@ -95,30 +195,11 @@ void loop() {
   cmd_pollserial();
   
   // Did a command change the mode?
-  if( tflcam_mode==TFLCAM_MODE_CONTINUOUS ) tflcam_shoot(TFLCAM_SHOOT_NONE);
+  if( tflcam_opmode==TFLCAM_OPMODE_CONTINUOUS ) tflcam_shoot();
 }
-
-
-// Typical sd card has 
-//   boot.cmd
-//   rps.tfl
-// and boot.cmd has contents
-//   // boot.cmd for Rock, paper, scissors
-//   @img crop  left 122  top 36  width 112  height 184  xsize 28  ysize 46
-//   @img trans rotcw
-//   @img proc histeq
-//   @labels none paper rock scissors
-//   file load /rps.tfl // 28x46->4
-// rps.tfl is a TFL flatbuffer that must match
-//   input   28*46
-//   output  4 (none paper rock scissors)
-
-
 
 
 // https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
 // todo Disable brownout #include "soc/rtc_cntl_reg.h"         WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-// todo replace img trans to fixed rot (to make faster/simpler)
-// todo: implement 'rawsave' for the raw image frame
-// todo: split cam get_fb and process, so that we can print time in three: fbget, process, predict
 // todo: eloquent as own subclass, not a patch
+// todo: load twice does not work

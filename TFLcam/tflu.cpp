@@ -106,10 +106,9 @@ float tflu_get_classprediction(int ix) {
 esp_err_t tflu_set_model(const uint8_t * model) {
   if( tflu_state==TFLU_STATE_STARTUP ) { Serial.printf("ERROR: tflu_setup() not yet called\n"); return ESP_FAIL; }
   if( model==0 ) { tflu_state = TFLU_STATE_SETUP; Serial.printf("ERROR: no model\n"); return ESP_FAIL; }
-  bool res = tflu_interpreter.begin(model); // todo: second time does not work
+  bool res = tflu_interpreter.begin(model);
   if( res ) {
     tflu_state = TFLU_STATE_MODEL;
-    Serial.printf("tflu: model loaded\n");  
   } else  {
     tflu_state = TFLU_STATE_SETUP;
     Serial.printf("tflu: model load FAIL (%s)\n",tflu_interpreter.errorMessage()); 

@@ -33,44 +33,13 @@ static void cam_fled_setup() {
 }
 
 // Set flash LED brightness to `duty` (0..100).
-static void cam_fled_set(int duty) {
+void cam_fled_set(int duty) {
   if( duty<0 ) duty= 0;
   if( duty>100 ) duty= 100;
   duty= duty * ((1<<CAM_FLED_RESOLUTION)-1) / 100;
   ledcWrite(CAM_FLED_CHANNEL, duty);
 }
 
-// Flash LED interface  =========================================================
-
-static int cam_fled_mode;
-static int cam_fled_duty;
-
-// Set the mode of the flash LED: off, only on when shooting images ("auto"), or permanently on.
-void cam_fled_set_mode( int mode ) {
-  if( mode==CAM_FLED_MODE_OFF || mode==CAM_FLED_MODE_AUTO || mode==CAM_FLED_MODE_PERMANENT ) {
-    cam_fled_mode=mode;
-    if( cam_fled_mode==CAM_FLED_MODE_PERMANENT ) cam_fled_set(cam_fled_duty);
-    if( cam_fled_mode==CAM_FLED_MODE_OFF       ) cam_fled_set(CAM_FLED_DUTY_MIN);
-  }
-}
-
-// Get the mode of the flash LED
-int cam_fled_get_mode( ) {
-  return cam_fled_mode;
-}
-
-// The brightness of the flash LED when it is used (auto or permanently)
-void cam_fled_set_duty( int duty ) {
-  if( CAM_FLED_DUTY_MIN<=cam_fled_duty && cam_fled_duty<=CAM_FLED_DUTY_MAX ) {
-    cam_fled_duty=duty;
-    if( cam_fled_mode==CAM_FLED_MODE_PERMANENT ) cam_fled_set(cam_fled_duty);
-  }
-}
-
-// Get the brightness of the flash LED
-int cam_fled_get_duty( ) {
-  return cam_fled_duty;
-}
 
 // Image processing ================================================================
 // Possible image improvement steps.
@@ -267,8 +236,6 @@ static camera_config_t cammodel_config = {
 // Configure the camera. Returns success status. Prints problems also to Serial.
 esp_err_t cam_setup() {
   cam_fled_setup();
-  cam_fled_set_mode( CAM_FLED_MODE_AUTO );
-  cam_fled_set_duty( CAM_FLED_DUTY_MAX );
   // Overwrite some configuration entries (for rest see commodel.h)
   cammodel_config.frame_size = FRAMESIZE_QVGA;
   cammodel_config.pixel_format = PIXFORMAT_GRAYSCALE;
@@ -292,34 +259,38 @@ esp_err_t cam_setup() {
 }
 
 
-// Capture image with camera, crop, transform, apply image processing,
-// as dictated by configuration variables cam_crop_xxx, cam_trans_xxx, cam_imgproc_xxx.
-// Result is stored in caller allocated outbuf with size outsize. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
-// Return success status. Prints problems also to Serial.
-esp_err_t cam_capture(uint8_t * outbuf, int outsize ) {
-  if( cam_fled_mode==CAM_FLED_MODE_AUTO ) cam_fled_set(cam_fled_duty);
+// Capture image with camera, and a pointer to the framebuffer.
+// Frame is size CAM_CAPTURE_WIDTH by CAM_CAPTURE_HEIGHT.
+// If Capture fails, returns 0 and prints message to Serial.
+const uint8_t * cam_capture( ) {
   camera_fb_t *fb = esp_camera_fb_get();
-  if( cam_fled_mode==CAM_FLED_MODE_AUTO ) cam_fled_set(CAM_FLED_DUTY_MIN);
 
   if( !fb ) {
     Serial.printf("cam : fb_get() failed\n");
-    return ESP_ERR_INVALID_STATE;
+    return 0;
   }
 
   // These are "assert", you may leave them out
   if( fb->width!=CAM_CAPTURE_WIDTH ) {
     Serial.printf("cam : mismatch in configured and actual frame width\n");
-    return ESP_FAIL;
+    return 0;
   }
   if( fb->height!=CAM_CAPTURE_HEIGHT ) {
     Serial.printf("cam : mismatch in configured and actual frame height\n");
-    return ESP_FAIL;
+    return 0;
   }
   if( fb->format!=PIXFORMAT_GRAYSCALE ) {
     Serial.printf("cam : mismatch in configured and actual frame format\n");
-    return ESP_FAIL;
+    return 0;
   }
+  return fb->buf;
+}
 
+// Reduces image imag ein `inbuf` (of size CAM_CAPTURE_WIDTH by CAM_CAPTURE_HEIGHT)
+// as dictated by configuration variables cam_crop_xxx, cam_trans_xxx, cam_imgproc_xxx.
+// Result is stored in caller allocated `outbuf` with size `outsize`. Returns ESP_ERR_INVALID_SIZE if outsize is too small.
+// Return success status. Prints problems also to Serial.
+esp_err_t cam_crop(const uint8_t * inbuf, uint8_t * outbuf, int outsize ) {
   // A run-time check on outsize
   if( cam_crop_xsize*cam_crop_ysize > outsize ) {
     Serial.printf("cam : outsize (%d) too small given crop %d*%d\n", outsize, cam_crop_xsize, cam_crop_ysize);
@@ -335,7 +306,7 @@ esp_err_t cam_capture(uint8_t * outbuf, int outsize ) {
       for( int yi=cam_crop_top+yp*cam_crop_height/cam_crop_ysize; yi<cam_crop_top+(yp+1)*cam_crop_height/cam_crop_ysize; yi++ ) {
         for( int xi=cam_crop_left+xp*cam_crop_width/cam_crop_xsize; xi<cam_crop_left+(xp+1)*cam_crop_width/cam_crop_xsize; xi++ ) {
           // (xi,yi) is the coordinate of the pixel in the averaging block
-          sum+= fb->buf[xi+CAM_CAPTURE_WIDTH*yi];
+          sum+= inbuf[xi+CAM_CAPTURE_WIDTH*yi];
           count++;
         }
       }
