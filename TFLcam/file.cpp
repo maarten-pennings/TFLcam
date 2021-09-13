@@ -38,7 +38,7 @@ esp_err_t file_setup() {
   if( file_load_buf==0 ) { Serial.printf("file: FAIL (no mem buf for load)\n"); return ESP_FAIL; }
   // Serial.printf("heap free=%d\n",ESP.getFreeHeap()); // Hack alert: somehow is helps to allocate the memory on startup (then it is stail avail)
 
-  Serial.printf("file: success\n");
+  // Serial.printf("file: success\n");
   return ESP_OK;
 }
 

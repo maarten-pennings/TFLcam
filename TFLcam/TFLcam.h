@@ -1,7 +1,7 @@
 // TFLcam.h - interface to TensorFlow Lite camera application
 
 // Application version
-#define TFLCAM_VERSION "0.9.0"
+#define TFLCAM_VERSION "0.9.1"
 #define TFLCAM_SHORTNAME "TFLcam"
 #define TFLCAM_LONGNAME "TensorFlow Lite camera"
 #define TFLCAM_BANNER "\n\n"\
@@ -46,9 +46,11 @@ int tflcam_fledmode_get_duty( );
 
 
 // Activating the sensor for one reading. called by loop() or by a 'mode single' command.
-#define TFLCAM_SHOOT_IMAGE   1
-#define TFLCAM_SHOOT_VECTOR  2
-#define TFLCAM_SHOOT_TIME    4
+#define TFLCAM_SHOOT_ASCII   1
+#define TFLCAM_SHOOT_HEX     2
+#define TFLCAM_SHOOT_VECTOR  4
+#define TFLCAM_SHOOT_TIME    8
+#define TFLCAM_SHOOT_FULL    (TFLCAM_SHOOT_ASCII|TFLCAM_SHOOT_HEX|TFLCAM_SHOOT_VECTOR|TFLCAM_SHOOT_TIME) 
 // Runs a full shoot (capture, crop, prediction, report) cycle 
 // Pass a combination of TFLCAM_SHOOT_XXX flags for extra output.
 // If filename_raw!=0, the raw camera image is saved under `filename_raw` on SD card.

@@ -8,8 +8,8 @@ The [official specification](https://github.com/raphaelbs/esp32-cam-ai-thinker/r
 The [rumor](https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/) also goes that bigger cards do work.
 I have tested with a 2G card, not yet with a bigger one (ordered...).
 
-I use a cheap [micro SD card reader](https://www.aliexpress.com/item/4000238222003.html) to mount the SD card in my PC.
-It appears as drive D; The first step is to format it.
+I use a micro SD card reader ([like this](https://www.aliexpress.com/item/4000238222003.html)) to mount the SD card in my PC.
+It appears as drive D; the first step is to format it.
 
 ![format](format1.png)
 
@@ -28,7 +28,7 @@ This step is optional. I noticed that windows makes a hidden directory
 If you want, you can delete it. Open `cmd` and run the command `rmdir /s "System Volume Information"`.
 
 ```
-C:\Users\maarten>d:
+C:\Users\maarten>D:
 
 D:\>dir /a
  Volume in drive D is TFLCAM2G
@@ -44,6 +44,7 @@ D:\>dir /a
 
 D:\>rmdir /s "System Volume Information"
 System Volume Information, Are you sure (Y/N)? y
+D:\>
 ```
 
 ## TFLcam

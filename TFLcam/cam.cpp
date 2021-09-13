@@ -251,10 +251,11 @@ esp_err_t cam_setup() {
   // Defaults for image processing
   cam_imgproc_flags = 0;
   // Print and return success
-  if( err==ESP_OK )
-    Serial.printf("cam : success\n");
-  else
+  if( err==ESP_OK ) {
+    // Serial.printf("cam : success\n");
+  } else {
     Serial.printf("cam : FAIL (%d: s)\n",err, esp_err_to_name(err));
+  }
   return err;
 }
 
@@ -341,20 +342,34 @@ int cam_outheight() {
 }
 
 // Print `img` in hex and ASCII to Serial
-void cam_printframe(uint8_t * img, int width, int height) {
+void cam_printframe(uint8_t * img, int width, int height, bool ascii, bool hex) {
   static const char *level="W@8Oo=- ";
-  Serial.printf("y\\x: 0%*d\n",width*2-1,width-1);
+  // print hex and/or ascii header
+  if( hex ) {
+    Serial.printf("y\\x: 00%*d",width*2-2,width-1);
+    if( ascii ) Serial.printf(" "); else Serial.printf("\n");
+  }
+  if( ascii ) {
+    if( !hex ) Serial.printf("y\\x: ");
+    Serial.printf("00%*d\n",width,width-1);
+  }
+  // print framebuffers in hex and/or ascii
   for( int y=0; y<height; y++ ) {
     Serial.printf("%3d: ",y);
-    // First print hex
-    for( int x=0; x<width; x++ ) {
-      Serial.printf("%02x",img[x+width*y]);
+    if( hex ) {
+      for( int x=0; x<width; x++ ) {
+        Serial.printf("%02x",img[x+width*y]);
+      }
+      Serial.printf(" ");
     }
-    Serial.printf(" |");
-    // Next print ASCII impression
-    for( int x=0; x<width; x++ ) {
-      Serial.printf("%c",level[img[x+width*y]/32]);
+    if( ascii ) {
+      Serial.printf("|");
+      // Next print ASCII impression
+      for( int x=0; x<width; x++ ) {
+        Serial.printf("%c",level[img[x+width*y]/32]);
+      }
+      Serial.printf("|");
     }
-    Serial.printf("|\n");
+    Serial.printf("\n");
   }
 }

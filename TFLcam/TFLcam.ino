@@ -135,7 +135,7 @@ void tflcam_shoot(int flags, const char * filename_raw, const char * filename_cr
         Serial.printf("save: cropped frame %s %s\n",filename_crop, err==ESP_OK?"success":"FAIL");
       }
       // 3. Print cropped frame
-      if( flags & TFLCAM_SHOOT_IMAGE ) cam_printframe(tflcam_buf,cam_outwidth(),cam_outheight());
+      if( flags & (TFLCAM_SHOOT_ASCII|TFLCAM_SHOOT_HEX) ) cam_printframe(tflcam_buf,cam_outwidth(),cam_outheight(), flags&TFLCAM_SHOOT_ASCII, flags&TFLCAM_SHOOT_HEX);
       // 4. Print prediction vector
       if( flags & TFLCAM_SHOOT_VECTOR ) tflu_print();
       // 5. Print prediction class
@@ -177,7 +177,7 @@ void setup() {
   cmds_setup();
   cam_setup();
   tflu_setup();
-  Serial.print("\ntype 'help' for help\n");
+  Serial.print("type 'help' for help\n");
   cmd_begin(); // also prints initial prompt
 
   tflcam_opmode = TFLCAM_OPMODE_IDLE;

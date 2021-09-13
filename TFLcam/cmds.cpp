@@ -282,21 +282,33 @@ static void cmds_mode_main( int argc, char * argv[] ) {
   if( argc>=2 && cmd_isprefix(PSTR("single"),argv[1]) ) { 
     char * rsave=0;
     char * csave=0;
-    int fimage=0;
+    int ffull=0;
+    int fhex=0;
+    int fascii=0;
     int fvector=0;
     int ftime=0;
     int frsave=0;
     int fcsave=0;
     int ix=2;
     while( ix<argc ) {
-      if( cmd_isprefix(PSTR("image"),argv[ix]) ) {
-        if( fimage==1 ) { Serial.printf("ERROR: image occurs more then once\n"); return; }
-        fimage=1;
+      if( cmd_isprefix(PSTR("full"),argv[ix]) ) {
+        if( ffull==1 ) { Serial.printf("ERROR: full occurs more then once\n"); return; }
+        ffull=1;
+      } else if( cmd_isprefix(PSTR("hex"),argv[ix]) ) {
+        if( fhex==1 ) { Serial.printf("ERROR: hex occurs more then once\n"); return; }
+        if( ffull==1 ) { Serial.printf("ERROR: hex occurs with full\n"); return; }
+        fhex=1;
+      } else if( cmd_isprefix(PSTR("ascii"),argv[ix]) ) {
+        if( fascii==1 ) { Serial.printf("ERROR: ascii occurs more then once\n"); return; }
+        if( ffull==1 ) { Serial.printf("ERROR: ascii occurs with full\n"); return; }
+        fascii=1;
       } else if( cmd_isprefix(PSTR("vector"),argv[ix]) ) {
         if( fvector==1 ) { Serial.printf("ERROR: vector occurs more then once\n"); return; }
+        if( ffull==1 ) { Serial.printf("ERROR: vector occurs with full\n"); return; }
         fvector=1;
       } else if( cmd_isprefix(PSTR("time"),argv[ix]) ) {
         if( ftime==1 ) { Serial.printf("ERROR: time occurs more then once\n"); return; }
+        if( ffull==1 ) { Serial.printf("ERROR: time occurs with full\n"); return; }
         ftime=1;
       } else if( cmd_isprefix(PSTR("rsave"),argv[ix]) ) {
         if( frsave==1 ) { Serial.printf("ERROR: rsave occurs more then once\n"); return; }
@@ -315,7 +327,7 @@ static void cmds_mode_main( int argc, char * argv[] ) {
       }
       ix++;      
     }
-    int flags = fimage*TFLCAM_SHOOT_IMAGE | fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
+    int flags = ffull*TFLCAM_SHOOT_FULL | fascii*TFLCAM_SHOOT_ASCII | fhex*TFLCAM_SHOOT_HEX| fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
     tflcam_shoot( flags, rsave, csave );
     if( tflcam_get_opmode() != TFLCAM_OPMODE_IDLE ) { 
       tflcam_set_opmode(TFLCAM_OPMODE_IDLE);
@@ -355,9 +367,12 @@ static const char cmds_mode_longhelp[] PROGMEM =
   "- shows active mode (never shows single)\n"
   "SYNTAX: mode idle\n"
   "- switch camera off, no TensorFlow predictions\n"
-  "SYNTAX: mode single ( image | vector | time | rsave <name> | csave <name> )...\n"
+  "SYNTAX: mode single <outputflags>...\n"
+  "outputflags: full | hex | ascii | vector | time | rsave <name> | csave <name>\n"
   "- takes a single shot, prints prediction, goes to idle mode\n"
-  "- 'image' also outputs ASCII rendering of the image\n"
+  "- 'full' is a shorthand of 'hex ascii vector time'\n"
+  "- 'hex' also outputs a hex dump of the image\n"
+  "- 'ascii' also outputs a character rendering of the image\n"
   "- 'vector' also outputs the probabilities of all classes\n"
   "- 'time' also outputs elapsed time\n"
   "- 'rsave' saves raw (camera) image on sd card under <name>\n"
@@ -489,7 +504,7 @@ static void cmds_cam_imgproc_print() {
 }
 
 static void cmds_img_crop_print() {
-  Serial.printf("crop : left %d  top %d  width %d  height %d  xsize %d ysize %d", cam_crop_left, cam_crop_top, cam_crop_width, cam_crop_height,cam_crop_xsize, cam_crop_ysize);
+  Serial.printf("crop : left %d top %d width %d height %d xsize %d ysize %d", cam_crop_left, cam_crop_top, cam_crop_width, cam_crop_height,cam_crop_xsize, cam_crop_ysize);
   Serial.print(" (poolx ");
   if( cam_crop_width%cam_crop_xsize==0 ) Serial.printf("%d",cam_crop_width/cam_crop_xsize); else Serial.printf("%.2f",cam_crop_width/(float)cam_crop_xsize); 
   Serial.print(" pooly ");
@@ -698,5 +713,9 @@ void cmds_setup() {
   num=cmds_mode_register();
   num=cmds_sys_register();
   num=cmds_version_register();
- if( num>=0 ) Serial.printf("cmds: success\n"); else Serial.printf("cmds: FAIL\n"); // too many commands registered
+  if( num>=0 ) {
+    // Serial.printf("cmds: success\n"); 
+  } else {
+    Serial.printf("cmds: FAIL\n"); // too many commands registered
+  }
 }

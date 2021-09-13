@@ -24,7 +24,7 @@ int cam_outwidth();
 int cam_outheight();
 
 // Print `img` in hex and ASCII to Serial
-void cam_printframe(uint8_t * img, int width, int height);
+void cam_printframe(uint8_t * img, int width, int height, bool ascii=true, bool hex=false);
 
 // Set flash LED brightness to `duty` (0..100).
 void cam_fled_set(int duty);

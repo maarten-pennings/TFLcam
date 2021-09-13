@@ -59,7 +59,7 @@ void tflu_setup() {
   for( int i=0; i< TFLU_MAXCLASSES; i++ )
     snprintf(tflu_classnames[i],TFLU_MAXCLASSNAMELEN,"cls%d",i);
   tflu_numclasses= 0;
-  Serial.printf("tflu: success\n");
+  // Serial.printf("tflu: success\n");
   tflu_state = TFLU_STATE_SETUP;
 }
 
