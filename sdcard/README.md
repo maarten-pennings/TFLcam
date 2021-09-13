@@ -48,7 +48,7 @@ System Volume Information, Are you sure (Y/N)? y
 
 ## TFLcam
 
-Final step is to do a save eject.
+Final step is to do a safe eject.
 
 ![eject](format3.png)
 
