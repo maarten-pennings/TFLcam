@@ -46,6 +46,7 @@ esp_err_t tflu_set_model(const uint8_t * model);
 int tflu_predict( uint8_t * frame, int size );
 
 
+// todo: eloquent as own subclass, not a patch
 // PATCH ALERT
 // The file EloquentTinyML.h needs a patch.
 // The following method needs to be added, eg after the predict()s on line 109 and 135

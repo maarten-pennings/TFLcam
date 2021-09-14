@@ -1,4 +1,5 @@
 // file.cpp - operations on sd card files
+// See eg https://randomnerdtutorials.com/esp32-microsd-card-arduino/
 #include "SD_MMC.h"
 #include "cmd.h" // for run command
 #include "file.h"
@@ -123,7 +124,7 @@ const uint8_t * file_load(const char * filepath) {
 
 
 
-// Writes the imag `img` (resolution `width` by `height`) to file `filepath`.
+// Writes the image `img` (resolution `width` by `height`) to file `filepath`.
 // `filepath` is a full file path leading to a file (there is no current working directory, so start with /). 
 esp_err_t file_imgwrite(const char * filepath, const uint8_t * img, int width, int height) {
   File file = SD_MMC.open(filepath, FILE_WRITE);
@@ -154,3 +155,57 @@ fail:
   file.close();
   return ESP_FAIL;
 }
+
+// Returns 0 when`path` is not a file/dir on the SD card.
+// Returns 1 when it is a file and 2 when it is a dir.
+int file_exists(const char * path) {
+  File file = SD_MMC.open(path);
+  int exists;
+  if( !file ) {
+    exists=0;
+  } else if( !file.isDirectory() ) {
+    exists=1;
+  } else {
+    exists=2;
+  }
+  file.close();
+  return exists;
+}
+
+
+// Creates a directory `path`.
+// `path` is a full path leading to a (new) dir (there is no current working directory, so start with /). 
+// Returns if successful (see below for examples), prints errors to serial.
+bool file_mkdir(const char * path) {
+  if( path==0 || strlen(path)==0 ) { Serial.printf("ERROR: path missing\n"); return false; }
+  if( path[strlen(path)-1]=='/' ) { Serial.printf("ERROR: path '%s' ends in '/'\n",path); return false; }
+  bool ok= SD_MMC.mkdir(path);
+  if( !ok ) { Serial.printf("ERROR: mkdir '%s' failed (root slash missing? parent exists?)\n",path); return false; }
+  return ok;
+}
+// mkdir new                   fails (no root slash)
+// mkdir /new                  success
+// mkdir /new.ext              success (extensions allowed in dir name)
+// mkdir /existingfile         fails (can not overwrite file)
+// mkdir /existingdir          success (just a no-op)
+// mkdir /existingfile/new     fails (can not use file as dir)
+// mkdir /existingdir/new      success (works for subdirs)
+// mkdir /absent/new           fails (does not create missing parent dirs)
+
+
+/*
+// rmdir existsemptydir.ext    fail
+// rmdir /existingemptydir     success
+// rmdir /existsemptydir.ext   success
+// rmdir /existingnonemptydir  fail
+// rmdir /dir/existingemptydir success
+// rmdir /existingfile         fail
+ 
+void file_rmdir(const char * path) {
+  if(SD_MMC.rmdir(path)){
+    Serial.printf("rmdir '%s' success\n",path);
+  } else {
+    Serial.printf("rmdir '%s' failed\n",path);
+  }
+}
+*/

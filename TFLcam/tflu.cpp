@@ -103,8 +103,10 @@ float tflu_get_classprediction(int ix) {
 // The `model` must be a FlatBuffer for TensorFlow Lite.
 // The inputs of the model expects must match the frame buffer resolution (in predict()).
 // The outputs of the model must match the number of classes set with set_numclasses().
+// todo: set second time does not work
 esp_err_t tflu_set_model(const uint8_t * model) {
   if( tflu_state==TFLU_STATE_STARTUP ) { Serial.printf("ERROR: tflu_setup() not yet called\n"); return ESP_FAIL; }
+  if( tflu_state>=TFLU_STATE_MODEL ) { Serial.printf("ERROR: can only load once (sys reboot?)\n"); return ESP_FAIL; } 
   if( model==0 ) { tflu_state = TFLU_STATE_SETUP; Serial.printf("ERROR: no model\n"); return ESP_FAIL; }
   bool res = tflu_interpreter.begin(model);
   if( res ) {

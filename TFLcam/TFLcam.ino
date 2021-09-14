@@ -91,6 +91,13 @@ int tflcam_fledmode_get_duty( ) {
   return tflcam_fledmode_duty;
 }
 
+// Brownout =====================================================================
+
+// See https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
+static void tflcam_disable_brownout() {
+  #include "soc/rtc_cntl_reg.h" 
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+}
 
 // Main application =============================================================
 
@@ -139,7 +146,7 @@ void tflcam_shoot(int flags, const char * filename_raw, const char * filename_cr
       // 4. Print prediction vector
       if( flags & TFLCAM_SHOOT_VECTOR ) tflu_print();
       // 5. Print prediction class
-      bool fprint_prediction = true; // in principle yes, except when we are in the special submode of continuous
+      bool fprint_prediction = flags & TFLCAM_SHOOT_PREDICT; // in principle yes, except when we are in the special submode of continuous
       if( tflcam_opmode==TFLCAM_OPMODE_CONTINUOUS && tflcam_opmode_count>0 ) {
         // Record stability, e.g. the amount of equal predictions in sequence (in tflcam_ix_count_same)
         if( ix!=tflcam_ix_prev ) {
@@ -168,6 +175,8 @@ void tflcam_shoot(int flags, const char * filename_raw, const char * filename_cr
 
 
 void setup() {
+  // tflcam_disable_brownout();
+  
   Serial.begin( 115200 );
   while( ! Serial ) delay(250);
   Serial.printf(TFLCAM_BANNER);
@@ -197,9 +206,3 @@ void loop() {
   // Did a command change the mode?
   if( tflcam_opmode==TFLCAM_OPMODE_CONTINUOUS ) tflcam_shoot();
 }
-
-
-// https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
-// todo Disable brownout #include "soc/rtc_cntl_reg.h"         WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-// todo: eloquent as own subclass, not a patch
-// todo: load twice does not work

@@ -66,7 +66,7 @@ and loads the tensorFlow Lite model `rps.tfl`.
      | |  |  __| | |    / __/ _` | '_ ` _ \
      | |  | |    | |___| (_| (_| | | | | | |
      |_|  |_|    |______\___\__,_|_| |_| |_|
-TFLcam - TensorFlow Lite camera - version 0.9.0
+TFLcam - TensorFlow Lite camera - version 1.0.0
 
 type 'help' for help
 >> file run /boot.cmd
@@ -100,6 +100,99 @@ If you want to replay, put your ESP32-CAM 40cm from a white wall and keep your h
 You can check that with `mode single ascii`.
 
 ```
+>>  mode single ascii
+y\x: 00                                            45
+  0: |WWW@@888OOooo===---            ----====oooOO8W|
+  1: |WW@@888OOOoo====--              ---====oooOOOW|
+  2: |WW@@888OOooo====--               ---===oooOOOW|
+  3: |W@@@888OOooo==---                ---===oooOOOW|
+  4: |W@@@88OOOooo==---                ---===oooOOOW|
+  5: |W@@@88OOOoo===---                 --===oooOOOW|
+  6: |W@@@88OOooo===---                ---===oooOOOW|
+  7: |W@@@88OOOooo==----               ---===oooOOOW|
+  8: |W@@@888OOooo==---                ---===oooOO8W|
+  9: |W@@@888OOooo==----               ---===oooOO8W|
+ 10: |W@@@888OOooo===---              ----==ooooOO8W|
+ 11: |W@@@@88OOooo===-----            ----==oooOOO8W|
+ 12: |WW@@@88OOOoo=o=-----           ----===oooOOO8W|
+ 13: |WW@@@88OOOoooo====-----        ----===ooOOO88W|
+ 14: |WW@@@888OOOoooo====----    - ----=====ooOOO88@|
+ 15: |WWW@@@888OOoooo=====-----------======ooOOO888W|
+ 16: |WWW@@@888OOooooo======--------=====ooooOOO888@|
+ 17: |WWW@@@@888OOooooo======---========ooooOOO888@@|
+ 18: |WWWW@@@8888Ooooooo==============oooooOOO8888@W|
+ 19: |WWWW@@@88888OoOOoooo===========oooooOOO8888@@@|
+ 20: |WWWWW@@@8888OOOOOooooo=======ooooooOOO8888@@@@|
+ 21: |WWWWW@@@@8888OOOOOoooooooooooooooOOOO88888@@@@|
+ 22: |WWWWWW@@@@888OO8OOOOooooooooooOOOOOOO8888@@@@W|
+ 23: |WWWWWWW@@@@@88O8OOOOOOOOOOOOOOOOOOOO888@@@@@WW|
+ 24: |WWWWWWW@@@@@@888OO8888OOOOO8OOO88@@@@@@@@@@@WW|
+ 25: |WWWWWWWW@@@@@@@@8O888888888888@WWWWWWW@@@@@WWW|
+ 26: |WWWWWWWWW@@@@@@@88@@888888888@WWWWWWWW@@@@WWW@|
+ 27: |WWWWWWWWWW@@@@@@@8@@@@@888@@@WWWWWWWWW@@WWWWWW|
+predict: 0/none
+>>  mode single ascii
+y\x: 00                                            45
+  0: |==-------                             -------=|
+  1: |=-------                               ------=|
+  2: |=-------                               ------=|
+  3: |=-------        =Oo=----               ------=|
+  4: |--------        W8O88OOooo--           ------=|
+  5: |--------        8@88oooo==oOooo=-      ------=|
+  6: |-------       ---OW8OOOo===oooooo-    -------=|
+  7: |=----========oO88=-@@@@Oo=oooooooO=-  -------=|
+  8: |=-=WWWW8O8OOOOOOO@WWWWW8OooO8OooooOo=--------=|
+  9: |=-WWW@8Ooooooo=ooooOOO8WWWW@@8OooooOO=-------=|
+ 10: |=-WW@@8OOooooo==oooooooO88WW88Oo=oooO8O=-----=|
+ 11: |oWWWWW@@@8OoOooooooo=o=OO@@@OOOO===ooO8O-----=|
+ 12: |WWWW@@@@@@@8@@@@8@@o=ooO8@OOOOoooooooOO8o=---=|
+ 13: |WWWW@88OOOooOooO8@8o===oO@8888OoooooOOO@@8O===|
+ 14: |WWWWWW@88OOoo==ooOOOOoooO8W8@@8OOoOOO88@@@WWWW|
+ 15: |oOWWWWW@8OOOoooooOOoo8OooO8W@@@88OOO888@@@@@@W|
+ 16: |ooWWWWWW@@@@@@88@OOOoo8ooOo8@@W@@OO88888@88@@@|
+ 17: |=oWWWW@@8OOOOOoO8WOooooOoOOOO@WWW@888888888@@@|
+ 18: |=ooO@WWW@8OO8OooO8Oooooooo8OOo8@WW@8@888888@@@|
+ 19: |======@WWW@O88OooOOoOOOooOOOOOO88@88888@@@@@@@|
+ 20: |======WWWW@WW@@W@@OOOOOoOOOOOO888@88O888@@@@@@|
+ 21: |======@WW@@8OOOOOO@@OOOoOOO8888@8@8OOO88@@@@@@|
+ 22: |=======oWWW@888ooOO@8oooOO8@@8@@@@8O88@@@@@WWW|
+ 23: |==========o8@WWW@8O8@@8O888@@@@888888@@WWW@WWW|
+ 24: |===============O8WW@8@@O88888@88888@@@WWWWWWWW|
+ 25: |=o================oO@@@@@@@@@@@@@@@WWWWWWWWWWW|
+ 26: |=o=======----======oooO@WWWWWWWWWWWWWWWWWWWWWW|
+ 27: |=oo=======--------=====o==oOO88OWWWWWW8@WWWWWW|
+predict: 1/paper
+>>  mode single ascii
+y\x: 00                                            45
+  0: |ooo===-----                         ------===O|
+  1: |o====------                         ------===O|
+  2: |o====-----                          ------===O|
+  3: |o===------                          ------===O|
+  4: |o===-----                           ------===O|
+  5: |o===-----        -OOOOo--  -=-      -----====O|
+  6: |o===------      o@8O8888@888Oo=-   ------====O|
+  7: |o====-----     o@8OO88W@@88888Oo-  ------====O|
+  8: |o===-------  - 888888888O8OOOO88o=------=====O|
+  9: |o====----------@88W8OOOOOOOOOOO88Oo=----=====O|
+ 10: |o====-------==oO8@W8OooOOOOOOOOO888Oo--=====oO|
+ 11: |o====-------=ooOWWW8OOOOO888OOOO888@8o=====ooO|
+ 12: |oo===-------=oo@8@@OOO888W@88OOOO888@@Ooo==ooO|
+ 13: |oo====------=o888W@OO88@@WW@888OO888@@@88OoooO|
+ 14: |oo=====----==o8@@W@888@O8WWW@88888888@@@WWWWWW|
+ 15: |ooo=========oo8@@W@88W8O8WWW@@@88888@@@@@@@WWW|
+ 16: |ooo=========oOOO@W8@W888@@@WWW@@@@@@@@@@@@@@@@|
+ 17: |oooo=======oooOOOW@W@888OO8WWWWW@@@@@@@@8@@@@@|
+ 18: |oooo=======oooOOoW@88888OO8WWWWWWW@@@@@@@@@@@@|
+ 19: |ooooo======oooOOOW@88888888WWWWWWW@@@@@@@@@@@@|
+ 20: |Ooooo=====ooooOOOOW@88@@@88WWW@@88@@@@@@@@@@@@|
+ 21: |OOoooo=====oooOOOOOW@888OO8WWW@888888@@@@@@@@@|
+ 22: |OOOoooooo=oooooOOOOW@@@8888W@8@8888@@@@@@WWWW@|
+ 23: |OOOOoooooooooooOOOO@W@@@@W@8888@88@@@W@WWWWWWW|
+ 24: |OOOOOooooooooooOOO8OWWWWWW@88888@@@WWWWWWWWWWW|
+ 25: |OOOOOooooooooooOOOO888WWWWWWWW@WWWWWWWWWWWWWWW|
+ 26: |OOOOOOoooooooooOooOOOOOO88@WWWWWWWWWWWWWWWWWWW|
+ 27: |OOOOOOoooooooooooooOOOOOO888O88@WWWWWWWWWWWWWW|
+predict: 2/rock
 >> mode single ascii
 y\x: 00                                            45
   0: |ooo==-----                         -----=====O|

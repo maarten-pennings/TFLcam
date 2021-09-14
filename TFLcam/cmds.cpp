@@ -16,6 +16,8 @@
 // cmds_sys =====================================================================================
 
 #include "esp32-hal-cpu.h" // see C:\Users\maarten\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6\cores\esp32\esp32-hal-cpu.h
+#include "soc/rtc_cntl_reg.h" // brownout, see https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
+// https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf
 
 const char * cmds_sys_resetreason() {
   esp_reset_reason_t reason = esp_reset_reason();
@@ -41,19 +43,20 @@ void cmds_sys_clk_show() {
 
 void cmds_sys_show() {
   cmds_sys_clk_show();
-  Serial.printf("reset: %s\n",cmds_sys_resetreason() );
-  Serial.printf("chip : model %s (%d cores) rev %d\n",ESP.getChipModel(),ESP.getChipCores(), ESP.getChipRevision() );
-  Serial.printf("ftrs :");
+  Serial.printf( "reset: %s\n",cmds_sys_resetreason() );
+  Serial.printf( "power: RTC_CNTL_BROWN_OUT_REG %08x\n", READ_PERI_REG(RTC_CNTL_BROWN_OUT_REG) );
+  Serial.printf( "chip : model %s (%d cores) rev %d\n",ESP.getChipModel(),ESP.getChipCores(), ESP.getChipRevision() );
+  Serial.printf( "ftrs :");
   esp_chip_info_t info;
   esp_chip_info(&info);
   if( info.features & BIT(0) ) Serial.printf(" Embedded-Flash");
   if( info.features & BIT(1) ) Serial.printf(" 2.4GHz-WiFi");
   if( info.features & BIT(4) ) Serial.printf(" Bluetooth-LE");
   if( info.features & BIT(5) ) Serial.printf(" Bluetooth-classic");
-  Serial.printf("\n");
+  Serial.printf( "\n");
   Serial.printf( "heap : size %u, free %u\n",ESP.getHeapSize(), ESP.getFreeHeap() );
   Serial.printf( "psram: size %u, free %u\n",ESP.getPsramSize(), ESP.getFreePsram() );
-  Serial.printf( "bufs : model %u, tensor %u\n", FILE_LOAD_BUFSIZE ,TFLU_TENSOR_ARENA_SIZE );
+  Serial.printf( "bufs : model %u, tensor %u (both fixed)\n", FILE_LOAD_BUFSIZE ,TFLU_TENSOR_ARENA_SIZE );
   // ESP.getSketchSize(), 
 }
 
@@ -246,25 +249,30 @@ static int cmds_version_register(void) {
 
 // cmds_mode ====================================================================================
 
-static int cmds_mode_train_count;
-
-static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
-  if( argc==0 ) {
-    Serial.printf("TODO: not yet implemented\n");
-    cmds_mode_train_count++;
-    char buf[5]; snprintf(buf,sizeof buf, "%04d",cmds_mode_train_count); cmd_set_streamprompt(buf);
-  } else {
-    Serial.printf("mode: training stopped\n");
-    cmd_set_streamfunc(0);
-  }
-}
-
 static void cmds_mode_show() {
   int m = tflcam_get_opmode();
   if( m==TFLCAM_OPMODE_IDLE ) Serial.printf("mode: idle\n");
   else if( m==TFLCAM_OPMODE_CONTINUOUS ) Serial.printf("mode: continuous (stable %d)\n",tflcam_fledmode_get_count());
   else if( m==TFLCAM_OPMODE_TRAIN ) Serial.printf("mode: train\n");
   else Serial.printf("mode: <unknown>\n");
+}
+
+ // Training handler
+#define CMDS_MODE_TRAIN_PATHLEN 128
+static int cmds_mode_train_count;
+static char cmds_mode_train_path[CMDS_MODE_TRAIN_PATHLEN];
+static int cmds_mode_train_pathlen;
+
+static void cmds_mode_streamfunc_train( int argc, char * argv[] ) {
+  if( argc==0 ) {
+    snprintf(&cmds_mode_train_path[cmds_mode_train_pathlen],CMDS_MODE_TRAIN_PATHLEN,"/img-%04d.pgm",cmds_mode_train_count);
+    tflcam_shoot( TFLCAM_SHOOT_NONE, 0, cmds_mode_train_path );
+    cmds_mode_train_count++;
+    char buf[9]; snprintf(buf,sizeof buf, "%04d >> ",cmds_mode_train_count); cmd_set_streamprompt(buf);
+  } else {
+    cmds_mode_show();
+    cmd_set_streamfunc(0);
+  }
 }
 
 // The mode command handler
@@ -327,7 +335,7 @@ static void cmds_mode_main( int argc, char * argv[] ) {
       }
       ix++;      
     }
-    int flags = ffull*TFLCAM_SHOOT_FULL | fascii*TFLCAM_SHOOT_ASCII | fhex*TFLCAM_SHOOT_HEX| fvector*TFLCAM_SHOOT_VECTOR | ftime*TFLCAM_SHOOT_TIME;
+    int flags = ffull*TFLCAM_SHOOT_FULL | fascii*TFLCAM_SHOOT_ASCII | fhex*TFLCAM_SHOOT_HEX| fvector*TFLCAM_SHOOT_VECTOR | TFLCAM_SHOOT_PREDICT | ftime*TFLCAM_SHOOT_TIME;
     tflcam_shoot( flags, rsave, csave );
     if( tflcam_get_opmode() != TFLCAM_OPMODE_IDLE ) { 
       tflcam_set_opmode(TFLCAM_OPMODE_IDLE);
@@ -349,11 +357,18 @@ static void cmds_mode_main( int argc, char * argv[] ) {
   }
   if( argc>=2 && cmd_isprefix(PSTR("train"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: train must have one directory name\n"); return; }
+    if( file_exists(argv[2]) ) { Serial.printf("ERROR: train must start with a non-existing directory\n"); return; }
+    if( ! file_mkdir(argv[2]) ) { return; }
+    cmds_mode_train_pathlen = strlen(argv[2]);
+    if( cmds_mode_train_pathlen + 1 + 8+1+3 + 1 > CMDS_MODE_TRAIN_PATHLEN ) { Serial.printf("ERROR: path (%d) too long to append /8.3 name (max %d)\n", cmds_mode_train_pathlen, CMDS_MODE_TRAIN_PATHLEN); return; }
+    // All checks pass, start train mode
     tflcam_set_opmode(TFLCAM_OPMODE_TRAIN);
     cmds_mode_show();
     Serial.printf("Press CR to save an image; any non-empty input will abort training mode\n");
+    // Record context
+    strncpy(cmds_mode_train_path, argv[2], CMDS_MODE_TRAIN_PATHLEN);
     cmds_mode_train_count=0;
-    cmd_set_streamprompt("0000");
+    cmd_set_streamprompt("0000 >> ");
     cmd_set_streamfunc(cmds_mode_streamfunc_train);
     return;
   }
@@ -419,6 +434,11 @@ static void cmds_file_main( int argc, char * argv[] ) {
     }
     return;
   }
+  if( argc>=2 && cmd_isprefix(PSTR("mkdir"),argv[1]) ) { 
+    if( argc!=3 ) { Serial.printf("ERROR: mkdir must have one filename\n"); return; }
+    file_mkdir(argv[2]);
+    return;
+  }
   if( argc>=2 && cmd_isprefix(PSTR("show"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: show must have one filename\n"); return; }
     file_show(argv[2]);
@@ -434,7 +454,7 @@ static void cmds_file_main( int argc, char * argv[] ) {
   if( argc>=2 && cmd_isprefix(PSTR("load"),argv[1]) ) { 
     if( argc!=3 ) { Serial.printf("ERROR: load must have one filename\n"); return; }
     const uint8_t * model = file_load(argv[2]);
-    esp_err_t res = tflu_set_model( model );
+    esp_err_t res = tflu_set_model( model ); 
     if( argv[0][0]!='@') if( res==ESP_OK ) Serial.printf("model '%s' loaded\n", argv[2]);
     return;
   }
@@ -449,6 +469,8 @@ static const char cmds_file_longhelp[] PROGMEM =
   "SYNTAX: file dir [ <name> [ <levels> ] ]\n"
   "- shows the contents of the directory <name> (default '/')\n"
   "- <levels> is the number of recursive steps (default 0)\n"
+  "SYNTAX: file mkdir <name>\n"
+  "- creates a subdirectory <name>, e.g. '/existing/new'\n"
   "SYNTAX: file show <name>\n"
   "- shows the content of file with 'name'\n"
   "SYNTAX: file run <name>\n"

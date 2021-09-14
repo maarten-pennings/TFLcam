@@ -1,7 +1,7 @@
 // TFLcam.h - interface to TensorFlow Lite camera application
 
 // Application version
-#define TFLCAM_VERSION "0.9.1"
+#define TFLCAM_VERSION "1.0.0"
 #define TFLCAM_SHORTNAME "TFLcam"
 #define TFLCAM_LONGNAME "TensorFlow Lite camera"
 #define TFLCAM_BANNER "\n\n"\
@@ -46,13 +46,15 @@ int tflcam_fledmode_get_duty( );
 
 
 // Activating the sensor for one reading. called by loop() or by a 'mode single' command.
+#define TFLCAM_SHOOT_NONE    0
 #define TFLCAM_SHOOT_ASCII   1
 #define TFLCAM_SHOOT_HEX     2
 #define TFLCAM_SHOOT_VECTOR  4
-#define TFLCAM_SHOOT_TIME    8
-#define TFLCAM_SHOOT_FULL    (TFLCAM_SHOOT_ASCII|TFLCAM_SHOOT_HEX|TFLCAM_SHOOT_VECTOR|TFLCAM_SHOOT_TIME) 
+#define TFLCAM_SHOOT_PREDICT 8
+#define TFLCAM_SHOOT_TIME    16
+#define TFLCAM_SHOOT_FULL    (TFLCAM_SHOOT_ASCII|TFLCAM_SHOOT_HEX|TFLCAM_SHOOT_VECTOR|TFLCAM_SHOOT_PREDICT|TFLCAM_SHOOT_TIME) 
 // Runs a full shoot (capture, crop, prediction, report) cycle 
 // Pass a combination of TFLCAM_SHOOT_XXX flags for extra output.
 // If filename_raw!=0, the raw camera image is saved under `filename_raw` on SD card.
 // If filename_crop!=0, the cropped image (for training inference) is saved under `filename_crop` on SD card.
-void tflcam_shoot(int flags=0, const char * filename_raw=0, const char * filename_crop=0 );
+void tflcam_shoot(int flags=TFLCAM_SHOOT_PREDICT, const char * filename_raw=0, const char * filename_crop=0 );
