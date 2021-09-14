@@ -21,13 +21,13 @@ namespace Eloquent {
             // This method can also scale input while copying; this saves an intermediate buffer (uint8->float).
             // Typically use scale=2.0/255.0 and offset=-1.0 to normalize an image.
             float predict_io(uint8_t *input, int insize, float *output, int outsize, float scale=1.0, float offset=0.0 ) {
-                // abort if initialization failed
+                // Abort if initialization failed
                 if( !this->initialized() ) {
                     this->error = NOT_INITIALIZED;
                     return sqrt(-1);
                 }
 
-                // copy input - do we want the normalization here?
+                // Copy input with scaling
                 for( size_t i = 0; i < insize; i++ )
                     this->input->data.f[i] = input[i]*scale+offset; // scale while copying
 
@@ -37,7 +37,7 @@ namespace Eloquent {
                     return sqrt(-1);
                 }
 
-                // copy output
+                // Copy output
                 for( uint16_t i = 0; i < outsize; i++ ) {
                     output[i] = this->output->data.f[i];
                 }
