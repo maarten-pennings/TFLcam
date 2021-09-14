@@ -57,7 +57,7 @@ Find a typical SD card image in this repo, in the sub directory [sdcard](sdcard)
 Here is a sample run.
 Observe that the ESP32 boots: it shows a banner and successful initialization (no error messages).
 Then it runs `boot.cmd`, which configures the input and output for the TensorFlow Lite interpreter,
-and loads the tensorFlow Lite model `rps.tfl`.
+and loads the TensorFlow Lite model `rps.tfl`.
 
 ```
    _______ ______ _
@@ -277,7 +277,7 @@ time: 4.81 FPS, 208 ms = 130 (capture) + 11 (crop) + 67 (predict) + 0 (output)
 
 - The camera [driver](https://github.com/espressif/esp32-camera/tree/master/driver)
 
-- Using an [SD card](https://randomnerdtutorials.com/esp32-microsd-card-arduino/) on the ESP 
+- Using an [SD card](https://randomnerdtutorials.com/esp32-microsd-card-arduino) on the ESP32 
 
 - Histogram equalization as an [image improvement](https://en.wikipedia.org/wiki/Histogram_equalization) step
 
