@@ -13,12 +13,13 @@ namespace Eloquent {
         class TfLiteNoIO : public TfLite<0,0,tensorArenaSize> {
         public:
 
-            // Block existing once, since they use the inputSize and outputSize
+            // Block existing predict()s, since they use the inputSize and outputSize
             uint8_t predict(uint8_t *input, uint8_t *output = NULL) { this->error=INVOKE_ERROR; this->reporter->Report("Inference failed"); return sqrt(-1); }
             float   predict(float *input, float *output = NULL) { this->error=INVOKE_ERROR; this->reporter->Report("Inference failed"); return sqrt(-1); }
 
-            // New one, input and output size passed dynamically. 
-            // Use scale=2.0/255.0 and offset=-1.0 to normalize an image while copying (saves an intermediate buffer).
+            // New predict(), input and output size passed dynamically. 
+            // This method can also scale input while copying; this saves an intermediate buffer (uint8->float).
+            // Typically use scale=2.0/255.0 and offset=-1.0 to normalize an image.
             float predict_io(uint8_t *input, int insize, float *output, int outsize, float scale=1.0, float offset=0.0 ) {
                 // abort if initialization failed
                 if( !this->initialized() ) {
@@ -50,4 +51,3 @@ namespace Eloquent {
 
 // Instantiate with only the TENSOR_ARENA_SIZE
 //    Eloquent::TinyML::TfLiteNoIO<TENSOR_ARENA_SIZE> ml;
-

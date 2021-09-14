@@ -1,7 +1,7 @@
 // TFLcam.h - interface to TensorFlow Lite camera application
 
 // Application version
-#define TFLCAM_VERSION "1.0.1"
+#define TFLCAM_VERSION "1.0.2"
 #define TFLCAM_SHORTNAME "TFLcam"
 #define TFLCAM_LONGNAME "TensorFlow Lite camera"
 #define TFLCAM_BANNER "\n\n"\
