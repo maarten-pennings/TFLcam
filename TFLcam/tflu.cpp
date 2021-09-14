@@ -1,12 +1,12 @@
 // tflu.cpp - TensorFlow lite prediction
 // Inspiration from https://eloquentarduino.github.io/2021/05/load-tensorflow-lite-model-from-sd-card-in-arduino/
-#include <float.h>          // For FLT_MAX
-#include <EloquentTinyML.h> // TensorFlow lite for ESP32, from https://github.com/eloquentarduino/EloquentTinyML
-#include "tflcam.h"         // for TFLCAM_MAXPIXELS
-#include "tflu.h"           // own header
+#include <float.h>              // For FLT_MAX
+#include "EloquentTinyMLnoIO.h" // For TfLiteNoIO 
+#include "tflcam.h"             // for TFLCAM_MAXPIXELS
+#include "tflu.h"               // own header
 
 
-static Eloquent::TinyML::TfLite<0,0,TFLU_TENSOR_ARENA_SIZE> tflu_interpreter; // See ALRT in tflu.h. We do not use in or out size
+static Eloquent::TinyML::TfLiteNoIO<TFLU_TENSOR_ARENA_SIZE> tflu_interpreter; 
 
 
 #define TFLU_STATE_STARTUP 0
@@ -124,7 +124,7 @@ esp_err_t tflu_set_model(const uint8_t * model) {
 int tflu_predict( uint8_t * frame, int size ) {
   if( tflu_state<TFLU_STATE_MODEL ) { Serial.printf("ERROR: model not yet loaded\n"); return -1; }
   if( tflu_numclasses==0 ) { Serial.printf("ERROR: no class names defined\n"); return -1; }
-  tflu_interpreter.predictx( frame, size, tflu_classpredictions, tflu_numclasses); // Needs patch, see predictx in tflu.h
+  tflu_interpreter.predict_io( frame, size, tflu_classpredictions, tflu_numclasses, 2.0/255.0, -1.0); // scale while copying
   int index = tflu_index_of_max(tflu_classpredictions, tflu_numclasses);
   tflu_state = TFLU_STATE_PREDICT;
   return index; 

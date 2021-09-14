@@ -44,37 +44,3 @@ esp_err_t tflu_set_model(const uint8_t * model);
 // The number of classes set with set_numclasses() must match the number outputs of the model set with load() - there is no check.
 // The resolution of `frame` must match the inputs of the model set with load() - there is no check.
 int tflu_predict( uint8_t * frame, int size );
-
-
-// todo: eloquent as own subclass, not a patch
-// PATCH ALERT
-// The file EloquentTinyML.h needs a patch.
-// The following method needs to be added, eg after the predict()s on line 109 and 135
-/*
-            float predictx(uint8_t *input, int insize, float *output, int outsize ) {
-                // abort if initialization failed
-                if( !initialized() ) {
-                    error = NOT_INITIALIZED;
-                    return sqrt(-1);
-                }
-
-                // copy input
-                for (size_t i = 0; i < insize; i++)
-                    this->input->data.f[i] = 2.0 * input[i] / 255.0 - 1.0;
-
-                if (interpreter->Invoke() != kTfLiteOk) {
-                    error = INVOKE_ERROR;
-                    reporter->Report("Inference failed");
-                    return sqrt(-1);
-                }
-
-                // copy output
-                for (uint16_t i = 0; i < outsize; i++) {
-                    output[i] = this->output->data.f[i];
-                }
-                
-                return this->output->data.f[0];
-           }
-*/
-// I also added
-// #define ELOQUENT_TINYML_VERSION "0.0.10"

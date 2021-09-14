@@ -1,16 +1,16 @@
 // cmds.cpp - the commands used by TFLcam
 #include <Arduino.h>
-#include "core_version.h"   // ARDUINO_ESP32_GIT_VER, ARDUINO_ESP32_GIT_DESC, ARDUINO_ESP32_RELEASE
-#include <EloquentTinyML.h> // For version of TensorFlow lite for ESP32, from https://github.com/eloquentarduino/EloquentTinyML
+#include "core_version.h"       // ARDUINO_ESP32_GIT_VER, ARDUINO_ESP32_GIT_DESC, ARDUINO_ESP32_RELEASE
+#include "EloquentTinyMLnoIO.h" // For version of TensorFlow lite for ESP32, from https://github.com/eloquentarduino/EloquentTinyML
 
-#include "cmd.h"            // command interpreter
-#include "cmds.h"           // own interface
+#include "cmd.h"                // command interpreter
+#include "cmds.h"               // own interface
 
 // The commands control the app (and some if its libs)
-#include "TFLcam.h"         // application
-#include "file.h"           // operations on sd card files
-#include "cam.h"            // camera configuration
-#include "tflu.h"           // TensorFlow lite configuration (of classes)
+#include "TFLcam.h"             // application
+#include "file.h"               // operations on sd card files
+#include "cam.h"                // camera configuration
+#include "tflu.h"               // TensorFlow lite configuration (of classes)
 
 
 // cmds_sys =====================================================================================
