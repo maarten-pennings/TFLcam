@@ -1,6 +1,10 @@
 # TFLcam
 Firmware (arduino sketch) for the ESP32-CAM turning it into a TensorFlow-Lite based classification sensor.
 
+_Save a TensorFlow Lite model on an SD card, slide the SD card in the ESP32-CAM,
+and the ESP will print over Serial what it sees with it's camera_.
+
+
 ## Introduction
 
 The TFLcam project started with [getting to know the ESP32-CAM](https://github.com/maarten-pennings/esp32cam).
