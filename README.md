@@ -269,5 +269,31 @@ time: 4.81 FPS, 208 ms = 130 (capture) + 11 (crop) + 67 (predict) + 0 (output)
 >>                                                                              
 ```
 
+## References
+
+- TensorFlow Lite for ESP32: starter [post](https://eloquentarduino.github.io/2020/01/easy-tinyml-on-esp32-and-arduino/),
+  associated [library](https://github.com/eloquentarduino/EloquentTinyML), 
+  dynamic [loading](https://eloquentarduino.github.io/2021/05/load-tensorflow-lite-model-from-sd-card-in-arduino/) of model
+
+- The camera [driver](https://github.com/espressif/esp32-camera/tree/master/driver)
+
+- Using an [SD card](https://randomnerdtutorials.com/esp32-microsd-card-arduino/) on the ESP 
+
+- Histogram equalization as an [image improvement](https://en.wikipedia.org/wiki/Histogram_equalization) step
+
+- Save image as text file in [PGM format](http://netpbm.sourceforge.net/doc/pgm.html)
+
+- Omnivision OV2640 [camera](https://www.arducam.com/ov2640/)
+
+- ESP32 [reference manual](https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf)
+
+- Details on the [ESP32-CAM](https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/), e.g. [schematics](https://github.com/SeeedDocument/forum_doc/blob/master/reg/ESP32_CAM_V1.6.pdf)
+  and how to prevent Flash LED to clash with SD card
+
+- Brownout [work around](https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/)
+
+- [ASCII font generator](https://patorjk.com/software/taag/#p=display&v=2&f=Big&t=TFLcam)
+
+
 (end)
 
