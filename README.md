@@ -273,6 +273,12 @@ time: 4.81 FPS, 208 ms = 130 (capture) + 11 (crop) + 67 (predict) + 0 (output)
 >>                                                                              
 ```
 
+
+## Application
+
+As a first application, I'm using TFLcam to make a sensors for [Lego Mindstorms](mindstorms).
+
+
 ## References
 
 - TensorFlow Lite for ESP32: starter [post](https://eloquentarduino.github.io/2020/01/easy-tinyml-on-esp32-and-arduino/),
