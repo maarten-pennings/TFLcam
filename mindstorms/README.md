@@ -24,7 +24,7 @@ A port has two more pins (M1/M2) to drive a motor. Those are not used.
 
 In other words, I can plug in the TFLcam sensor in the Mindstorms hub, and then program
 the Mindstorms robot to start to the sensor, read the classification strings, and act upon that.
-My robot consists of a hand that mimics the hand in front of the camera.
+This project's robot consists of a hand that mimics the hand in front of the camera.
 
 ## Wiring
 In the above diagram, the wiring looks simple. 
@@ -47,7 +47,7 @@ As a result I did see an occasional reset. There are several possible solutions:
   I did see the resets during debugging (with the FTDI connector attached), but currently (without the cable), not.
 - **Add capacitor**; hypothesis: switching on the flash LED or capturing an image cause a current surge,
   which causes a voltage drop, which causes the brownout. Had that cap, but removed it.
-- **Disable brownout detector**; a suggested solution found [elsewhere](https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card#:~:text=WRITE_PERI_REG,disable%20brownout%20detector).
+- **Disable brownout detector**; a suggested software solution found [elsewhere](https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card#:~:text=WRITE_PERI_REG,disable%20brownout%20detector).
   It is part of the TFLcam source, but [commented out](https://github.com/maarten-pennings/TFLcam/blob/main/TFLcam/TFLcam.ino#:~:text=setup,tflcam_disable_brownout();).
 - **Boost converter**: boost the 3V3 to 5V and feed that to the ESP32-CAM board. It has its own regulator to go down to 3V3 again.
   Voluminous and wasting energy - not tried yet.
@@ -74,17 +74,19 @@ First, we need to open the port for serial.
 ```
 
 
-Secondly, we need to give a command in TFLcam to go to continuous mode.
-The two means: only report when the detected class changes and is stable for 2 frames).
-Note that we need to send ASCII bytes to TFLcam, not UTF-8 or something like that.
+Secondly, we need to give a command to TFLcam to go to continuous mode.
+The `2` means: only report when the detected class changes and is stable for 2 frames.
+Note that we need to send ASCII bytes (a `b""` string) to TFLcam, 
+not UTF-8 or something like that.
 
 ```python
   port.write( b"mode continuous 2\n" )
 ```
 
 From now on, messages like `"predict: 1/paper"` are send by TFLcam to the hub.
-We run the below fragment in a loop; it receives messages from the TFLcam, line-by-line.
-Again, note that the TFLcam works with ASCII and Python with Unicode points, so we need to `decode`.
+We run the below fragment in _loop_; it receives bytes from the TFLcam 
+and outputs them line-by-line. Again, note that the TFLcam works with ASCII 
+and Python with Unicode points, so we need to `decode`.
 
 ```python
   bytes = port.read(32)
@@ -98,7 +100,7 @@ Again, note that the TFLcam works with ASCII and Python with Unicode points, so 
 ```
 
 The above fragments explain the core. The complete soure is available as [Python](RockPaperScissors.py)
-but also as [Lego MindStorms file](RockPaperScissors.lms). The should be the same (:-).
-It is the source for the Rock-Paper-Scissors application.
+but also as [Lego MindStorms file](RockPaperScissors.lms). They should be the same (:-).
+It is the source for the rock-paper-scissors Robot Inventor application.
 
 (end)
