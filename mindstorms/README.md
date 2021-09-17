@@ -99,8 +99,9 @@ and Python with Unicode points, so we need to `decode`.
   # result is a complete line from TFLcam or None
 ```
 
-The above fragments explain the core. The complete soure is available as [Python](RockPaperScissors.py)
-but also as [Lego MindStorms file](RockPaperScissors.lms). They should be the same (:-).
+The above fragments explain the core. The complete source is more complex. 
+It is available as [Python](RockPaperScissors.py) but also as [Lego MindStorms file](RockPaperScissors.lms). 
+They should be the same (:-).
 It is the source for the rock-paper-scissors Robot Inventor application.
 
 (end)

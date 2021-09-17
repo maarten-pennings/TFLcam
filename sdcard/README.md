@@ -17,7 +17,9 @@ I believe Arduino library can only handle FAT32, so select that. Optionally give
 
 ![FAT32](format2.png)
 
-After that copy the files from the repo directory [root-rps](root-rps) to the root directory of the SD card.
+After that copy the two files (`boot.cmd` and `rps.tfl`) from the repo directory [root-rps](root-rps) to the root directory of the SD card.
+There is a second boot file - `bootlego.cmd` - that I need for my second system, which is used as a camera for a Lego Mindstorms robot. 
+The optics differs so much that I needed different crop settings
 
 
 ## Optional cleanup

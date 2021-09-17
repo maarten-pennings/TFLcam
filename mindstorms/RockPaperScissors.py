@@ -14,27 +14,44 @@ class TFLcam :
         sleep_ms(100)
         self.port.baud(115200)
         sleep_ms(100)
-        # Start the sensor in continuous mode (send ASCII)
-        self.port.write( b"fled auto 10\nmode cont 2\n" )
-        sleep_ms(100)
         # Initialize receive buffer
-        self.rxbuf = ""
-    # Returns message (one line) send by the TFLcam (or None)
-    def readln(self) :
-        # Get bytes from the serial buffer
-        bytes = self.port.read(32)
+        self.rxbuf = b""
+        # Sync
+        self.cmd("") # clear pending commands
+        self.cmd("echo enabled") # clear disabled
+        self.cmd("echo [sync]","[sync]\r\n>> ")
+        self.cmd("mode idle") # reset opmode
+    # Sends command ucmd to TFLcam, waits for an answer (containg usync) and returns the answer
+    def cmd(self,ucmd,usync=">> ") :
+        # Convert strings to bytes
+        bcmd= ucmd.encode()
+        bsync= usync.encode()
+        self.port.write(bcmd+b"\n") # Send bytes with <CR> to command interpreter
+        pos,tries = -1,0
+        while (pos<0) and (tries<100):
+            self.rxbuf += self.port.read(256)
+            pos = self.rxbuf.find(bsync)
+            sleep_ms(50)
+            tries= tries+1
+        if pos<0 :
+            raise Exception("cmd(): sync not received ["+self.rxbuf.decode()+"]")
+        result=self.rxbuf[:pos]
+        self.rxbuf=self.rxbuf[pos+len(bsync):]
         try :
-            self.rxbuf += bytes.decode("ascii")
+            result = result.decode() # Convert bytes to strings
         except :
-            pass
-        # Is there a full line in rxbuf?
-        result = None
-        pos = self.rxbuf.find("\n")
+            result = ""
+        return 
+    # Returns one line send by the TFLcam (or None)
+    def readln(self) :
+        self.rxbuf += self.port.read(256)
+        pos = self.rxbuf.find(b"\n")
         if pos>=0 :
-            result = self.rxbuf[0:pos]
+            result = self.rxbuf[:pos]
             self.rxbuf = self.rxbuf[pos+1:]
-        return result
-    # Returns class label send by TFLcam (or None) 
+            return result.decode()
+        return None
+    # Returns class label send by TFLcam (or None)
     def readlbl(self) :
         line = self.readln()
         # Parse eg "predict: 1/paper"
@@ -51,19 +68,19 @@ class Hand :
         if not portlo in "ABCDEF" :
             raise Exception("portlo must be A,B,C,D,E, or F")
         self.portlo = eval("hub.port."+portlo+".motor")
-        if self.portlo == None :
-            raise Exception(portlo+" has no motor")
+        if self.portlo.__class__.__name__!="Motor":
+            raise Exception(porthi+" has no motor")
         # Claim porthi
         if not porthi in "ABCDEF" :
             raise Exception("porthi must be A,B,C,D,E, or F")
         self.porthi = eval("hub.port."+porthi+".motor")
-        if self.porthi == None :
+        if self.porthi.__class__.__name__!="Motor":
             raise Exception(porthi+" has no motor")
         # Startup animation
-        hub.display.align(hub.LEFT)
+        hub.display.align(hub.RIGHT)
         self.rock()
-        self.scissors()
         self.paper()
+        self.scissors()
         self.none()
     def none(self):
         hub.display.show(hub.Image("00000:00000:09990:00000:00000")) # "-"
@@ -92,6 +109,8 @@ class Hand :
 print("START")
 tflcam = TFLcam('A')
 hand = Hand("B","D")
+
+tflcam.cmd( "mode cont 2" )
 
 last = ticks_ms()
 while ticks_diff(ticks_ms(),last) < 30000 :
