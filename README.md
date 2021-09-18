@@ -4,6 +4,8 @@ Firmware (arduino sketch) for the ESP32-CAM turning it into a TensorFlow-Lite ba
 _Save a TensorFlow Lite model on an SD card, slide the SD card in the ESP32-CAM,
 and the ESP will print over Serial what it sees with it's camera_.
 
+Here is a demo [video](https://youtu.be/sf4MbvWIKFw)
+
 
 ## Introduction
 
@@ -276,7 +278,7 @@ time: 4.81 FPS, 208 ms = 130 (capture) + 11 (crop) + 67 (predict) + 0 (output)
 
 ## Application
 
-As a first application, I'm using TFLcam to make a sensors for [Lego Mindstorms](mindstorms).
+As a first application, I'm using TFLcam to make a sensors for [Lego Mindstorms](mindstorms), even a Lego compatible [casing](casing).
 
 
 ## References

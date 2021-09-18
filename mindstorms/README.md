@@ -1,6 +1,9 @@
 # Mindstorms
 I use the TFLcam as a sensor for Lego Mindstorms Robot Inventor.
 
+Here is a demo [video](https://youtu.be/sf4MbvWIKFw)
+
+
 ## Introduction
 I have an [ESP32-CAM](https://www.aliexpress.com/item/1005001818136526.html).
 It runs the [TFLcam](https://github.com/maarten-pennings/TFLcam) firmware.
@@ -103,5 +106,18 @@ The above fragments explain the core. The complete source is more complex.
 It is available as [Python](RockPaperScissors.py) but also as [Lego MindStorms file](RockPaperScissors.lms). 
 They should be the same (:-).
 It is the source for the rock-paper-scissors Robot Inventor application.
+
+## Casing
+
+I did make a Lego compatible [casing](../casing).
+
+## Links
+
+- I got inspired by the [coffee cup beacon](https://www.facebook.com/groups/SPIKEcommunity/permalink/1357979457913616) from Nard Strijbosch 
+- Also the [robot hand](https://www.facebook.com/groups/mindstormsrobotinventor/permalink/526502441696048/) from Tube Bbangbbang.
+- The firmware for the camera is in my [TFLcam project](https://github.com/maarten-pennings/TFLcam) on github.
+- To train a model see my [Jupyter](https://github.com/maarten-pennings/MachineLearning/blob/main/rock-paper-scissors/rock-paper-scissors.ipynb) notebook.
+- The TensorFlow interpreter is the [EloquentTinyML library](https://github.com/eloquentarduino/EloquentTinyML).
+- [Anton's Mindstorms hacks](https://antonsmindstorms.com/) pilots a lot of advanced Lego robotics.
 
 (end)
