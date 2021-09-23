@@ -94,10 +94,10 @@ int tflcam_fledmode_get_duty( ) {
 // Brownout =====================================================================
 
 // See https://randomnerdtutorials.com/esp32-cam-take-photo-save-microsd-card/
-static void tflcam_disable_brownout() {
-  #include "soc/rtc_cntl_reg.h" 
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
-}
+//static void tflcam_disable_brownout() {
+//  #include "soc/rtc_cntl_reg.h" 
+//  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+//}
 
 // Main application =============================================================
 

@@ -232,6 +232,25 @@ y\x: 00                                            45
 predict: 3/scissors
 ```
 
+## Versions
+
+I have often problems with Arduino versions, so TFLcam tries to record them.
+When giving the `version` command, the used versions are shown.
+
+```
+>> version
+app     : TensorFlow Lite camera (TFLcam) 1.0.3
+library : cmd 8.0.1
+library : EloquentTinyML 0.0.10
+runtime : Arduino ESP32 1_0_6
+compiler: 5.2.0
+arduino : 10816
+compiled: Sep 23 2021, 22:06:36
+>> 
+```
+
+Also, it appears important to have `File > Preferences > Compiler warnings` on `Default`.
+
 ## Limitations
 
 At this moment the biggest limitations are that the sketch uses the camera in

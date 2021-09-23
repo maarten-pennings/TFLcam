@@ -26,7 +26,7 @@ static float tflu_classpredictions[TFLU_MAXCLASSES];
 // For a (float) `vector` of size `size`, returns the index of the greatest.
 static int tflu_index_of_max( float * vector, int size ) {
   float max_val = -FLT_MAX;
-  int   max_ix;
+  int   max_ix = -1;
   for( int ix=0; ix<size; ix++ ) {
     if( vector[ix] > max_val ) {
       max_ix = ix;

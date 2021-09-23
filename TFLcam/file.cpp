@@ -17,7 +17,7 @@ void file_sdprops() {
     case CARD_UNKNOWN : Serial.printf("unknown"); break;
     default           : Serial.printf("error"); break;
   }
-  if( cardtype!=CARD_NONE ) Serial.printf(" size %lu", SD_MMC.cardSize()); 
+  if( cardtype!=CARD_NONE ) Serial.printf(" size %llu", SD_MMC.cardSize()); 
   Serial.printf("\n");
 }
 
@@ -135,7 +135,7 @@ esp_err_t file_imgwrite(const char * filepath, const uint8_t * img, int width, i
   // http://netpbm.sourceforge.net/doc/pgm.html
   ok &= 0<file.printf("P2 # TFLcam: %s\n",filepath);
   ok &= 0<file.printf("%d %d # width height\n",width,height);
-  ok &= 0<file.printf("255 # max gray\n",width,height);
+  ok &= 0<file.printf("255 # max gray\n");
   if( !ok ) { Serial.printf("ERROR: image header write failed\n"); goto fail; }
 
   for( int y=0; y<height; y++ ) {

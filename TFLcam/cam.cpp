@@ -254,7 +254,7 @@ esp_err_t cam_setup() {
   if( err==ESP_OK ) {
     // Serial.printf("cam : success\n");
   } else {
-    Serial.printf("cam : FAIL (%d: s)\n",err, esp_err_to_name(err));
+    Serial.printf("cam : FAIL (%d: %s)\n",err, esp_err_to_name(err));
   }
   return err;
 }
