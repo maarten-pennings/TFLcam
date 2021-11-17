@@ -31,11 +31,11 @@ or, for example, a simple Lego brick classifier.
 ## Architecture
 
 The core modules of the TFLcam project are
- - TensorFlow Lite interpreter (`tflu.cpp` and `tflu.h`)
- - Command interpreter (`cmds.cpp` and `cmds.h`)
- - Camera driver (`cam.cpp` and `cam.h`)
- - SD card file system driver (`file.cpp` and `file.h`)
- - Top-level application sketch (`TFLcam.ino` and `TFLcam.h`)
+ - TensorFlow Lite interpreter (`tflu.cpp` and `tflu.h`).
+ - Commands (`cmds.cpp` and `cmds.h`), you also need my Arduino [lib](https://github.com/maarten-pennings/cmd) for the command interpreter `cmd`.
+ - Camera driver (`cam.cpp` and `cam.h`).
+ - SD card file system driver (`file.cpp` and `file.h`).
+ - Top-level application sketch (`TFLcam.ino` and `TFLcam.h`).
 
 The command interpreter contains several commands.
 Key are the commands that configure the processing done on the camera output (cropping, sub sampling);
