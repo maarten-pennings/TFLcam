@@ -24,9 +24,6 @@ which holds the _hand rest_ and the _camera holder_.
 **Step 1.03** This will fix the paperboard at the bottom ...
 ![Step1.03](screen/step1.03.jpg)
 
-(you may use this as alternative)
-![Step1.03a](screen/step1.03a.jpg)
-
 **Step 1.04** ... assembled ...
 ![Step1.04](screen/step1.04.jpg)
 
