@@ -3,7 +3,7 @@
 This page shows how I made the Rock, Paper, Scissors robot.
 It consists of two models: the screen fixture and the hand.
 
-## Screen fixture
+## The screen fixture
 
 The model consists of several parts. 
 The _screen holder_ will keep the paperboard screen in place.
@@ -36,10 +36,10 @@ which holds the _hand rest_ and the _camera holder_.
 **Step 1.07** Assemble the left and right side ...
 ![Step1.07](step1.07.jpg)
 
-**Step 1.08** ... join the rest of the base ...
+**Step 1.08** ... join that together with the braces to the rest of the base ...
 ![Step1.08](step1.08.jpg)
 
-**Step 1.09** and the screen holder base is finished.
+**Step 1.09** ... and the screen holder base is finished.
 ![Step1.09](step1.09.jpg)
 
 ### Attaching the screen holder
@@ -91,13 +91,13 @@ which holds the _hand rest_ and the _camera holder_.
 **Step 3.03** With two 7-long beams ...
 ![Step3.03](step3.03.jpg)
 
-**Step 3.04** ... connect that to the holder base.
+**Step 3.04** ... connect the hand rest to the holder base.
 ![Step3.04](step3.04.jpg)
 
 
 ### Attaching the foundation
 
-**Step 4.01** We connect 3 L-beams and 9 pins.
+**Step 4.01** We connect 1 L-beams and 3 long beams with 9 pins.
 ![Step4.01](step4.01.jpg)
 
 **Step 4.02** Add three braces ...
@@ -139,7 +139,7 @@ which holds the _hand rest_ and the _camera holder_.
 
 ### Attaching the screen
 
-It is suggested to take a thin piece of paperboard and cut it to the correct dimensions: 18 lego unit high or 144 mm and 27 lego units wide or 216 mm. It is suggested to make the paperboard a bit wider than 216.
+It is suggested to take a thin piece of paperboard and cut it to the correct dimensions: 18 lego unit high or 144 mm and 27 lego units wide or 216 mm. It is suggested to make the paperboard a couple of mm's wider than 216.
 
 **Step 6.01** Slide in the paperboard. Make sure the long tile at the bottom presses the paperboard against the screen holder.
 ![Step6.01](step6.01.jpg)
@@ -153,3 +153,10 @@ It is suggested to take a thin piece of paperboard and cut it to the correct dim
 **Step 6.04** This finishes the screen fixture.
 ![Step6.04](step6.04.jpg)
 
+
+
+## The hand
+
+to be done
+
+(end)
