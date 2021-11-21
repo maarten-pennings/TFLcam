@@ -1,7 +1,9 @@
 # Mindstorms
 I use the TFLcam as a sensor for Lego Mindstorms Robot Inventor.
 
-Here is a demo [video](https://youtu.be/sf4MbvWIKFw)
+Here is a demo [video](https://youtu.be/sf4MbvWIKFw).
+
+[![robot](robot.jpg)](https://youtu.be/sf4MbvWIKFw)
 
 
 ## Introduction
@@ -110,6 +112,10 @@ It is the source for the rock-paper-scissors Robot Inventor application.
 ## Casing
 
 I did make a Lego compatible [casing](../casing).
+
+## Building instructions
+
+I did make instructions for building the [model](../model).
 
 ## Links
 
