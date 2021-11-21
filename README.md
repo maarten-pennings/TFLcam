@@ -6,6 +6,8 @@ and the ESP will print over Serial what it sees with it's camera_.
 
 Here is a demo [video](https://youtu.be/sf4MbvWIKFw)
 
+![robot](robot.jpg)
+
 
 ## Introduction
 
