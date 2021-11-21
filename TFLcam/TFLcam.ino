@@ -4,7 +4,7 @@
 
 #include "TFLcam.h" // has application version #define's, eg TFLCAM_VERSION
 #include "file.h"   // operations on sd card files, eg file_run()
-#include "cmd.h"    // the command interpreter
+#include "cmd.h"    // the command interpreter, download at https://github.com/maarten-pennings/cmd
 #include "cmds.h"   // commands for the command interpreter
 #include "cam.h"    // get images from the camera
 #include "tflu.h"   // TensorFlow interpreter
