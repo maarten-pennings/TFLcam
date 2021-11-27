@@ -109,6 +109,8 @@ It is available as [Python](RockPaperScissors.py) but also as [Lego MindStorms f
 They should be the same (:-).
 It is the source for the rock-paper-scissors Robot Inventor application.
 
+Note: Reviewing this later, I believe that names `portlo` and `porthi` in the code are swapped...
+
 ## Casing
 
 I did make a Lego compatible [casing](../casing).

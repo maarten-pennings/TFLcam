@@ -382,7 +382,7 @@ This completes the hand.
 
 ![Step4.01](hand/step4.01.jpg)
 
-**Step 4.02** ... assembled into the right right base.
+**Step 4.02** ... assembled into the right base.
 
 ![Step4.02](hand/step4.02.jpg)
 
@@ -422,7 +422,7 @@ This completes the hand.
 
 ![Step4.11](hand/step4.11.jpg)
 
-**Step 4.12** ... to fix both cables.
+**Step 4.12** ... to secure both cables.
 
 ![Step4.12](hand/step4.12.jpg)
 
@@ -430,7 +430,7 @@ This completes the hand.
 
 ![Step4.13](hand/step4.13.jpg)
 
-### Hand assembly
+### Final hand assembly
 
 **Step 5.01** Parts ...
 
@@ -458,7 +458,7 @@ This completes the hand.
 
 Make sure to align the gears in such a way that the fingers are in the "open" position.
 
-## Robot assembly
+## Final robot assembly
 Finally, we bring the two fixtures together. 
 Connect the TFLcam sensor to port A of the brick.
 
