@@ -10,6 +10,9 @@ except that you need two extra 8-tooth gear, either the
 
 For the screen fixture, you need extra parts.
 
+By the way, see a sibling [directory](../mindstorms) in this github project, 
+for the code running on the mindstorms programmable brick.
+
 ## The screen fixture
 
 The screen fixture model consists of several parts. 
