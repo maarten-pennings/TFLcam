@@ -6,7 +6,8 @@ It consists of two models: the screen fixture and the hand fixture.
 The hand fixture can be made from parts in the 51515 Robot Inventor set, 
 except that you need two extra 8-tooth gear, either the 
 [old](https://www.bricklink.com/v2/catalog/catalogitem.page?P=3647) one or the 
-[new](https://www.bricklink.com/v2/catalog/catalogitem.page?P=10928) one.
+[new](https://www.bricklink.com/v2/catalog/catalogitem.page?P=10928) one - actually 
+there are even [more](https://rebrickable.com/parts/3647/technic-gear-8-tooth/) versions.
 
 For the screen fixture, you need extra parts.
 
@@ -433,17 +434,17 @@ This completes the hand.
 
 ![Step4.13](hand/step4.13.jpg)
 
-### Final hand assembly
+### Final hand fixture assembly
 
 **Step 5.01** Parts ...
 
 ![Step5.01](hand/step5.01.jpg)
 
-**Step 5.02** ... assembled into a pillar.
+**Step 5.02** ... assembled into a pillar (the spacers can still fall off).
 
 ![Step5.02](hand/step5.02.jpg)
 
-**Step 5.03** The axles that control the fingers.
+**Step 5.03** The axles that control the fingers (note the two extra 8 tooth gears).
 
 ![Step5.03](hand/step5.03.jpg)
 
