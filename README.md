@@ -299,7 +299,8 @@ time: 4.81 FPS, 208 ms = 130 (capture) + 11 (crop) + 67 (predict) + 0 (output)
 
 ## Application
 
-As a first application, I'm using TFLcam to make a sensors for [Lego Mindstorms](mindstorms), even a Lego compatible [casing](casing).
+As a first application, I'm using TFLcam to make a sensors for [Lego Mindstorms](mindstorms), even with a Lego compatible [casing](casing).
+That sensor is used in a rock, paper, scissors robot [model](model).
 
 
 ## References
